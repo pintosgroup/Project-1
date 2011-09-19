@@ -1,0 +1,127 @@
+squish-pty bochs -q
+========================================================================
+                       Bochs x86 Emulator 2.4.5
+              Build from CVS snapshot, on April 25, 2010
+========================================================================
+PiLo hda1
+Loading.........
+Kernel command line: run alarm-mucho
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  204,600 loops/s.
+Boot complete.
+Executing 'alarm-mucho':
+(alarm-mucho) begin
+(alarm-mucho) Creating 5 threads to sleep 21 times each.
+(alarm-mucho) Thread 0 sleeps 10 ticks each time,
+(alarm-mucho) thread 1 sleeps 20 ticks each time, and so on.
+(alarm-mucho) If successful, product of iteration count and
+(alarm-mucho) sleep duration will appear in nondescending order.
+(alarm-mucho) thread 0: duration=10, iteration=1, product=10
+(alarm-mucho) thread 0: duration=10, iteration=2, product=20
+(alarm-mucho) thread 1: duration=20, iteration=1, product=20
+(alarm-mucho) thread 2: duration=30, iteration=1, product=30
+(alarm-mucho) thread 0: duration=10, iteration=3, product=30
+(alarm-mucho) thread 0: duration=10, iteration=4, product=40
+(alarm-mucho) thread 1: duration=20, iteration=2, product=40
+(alarm-mucho) thread 3: duration=40, iteration=1, product=40
+(alarm-mucho) thread 4: duration=50, iteration=1, product=50
+(alarm-mucho) thread 0: duration=10, iteration=5, product=50
+(alarm-mucho) thread 0: duration=10, iteration=6, product=60
+(alarm-mucho) thread 1: duration=20, iteration=3, product=60
+(alarm-mucho) thread 2: duration=30, iteration=2, product=60
+(alarm-mucho) thread 0: duration=10, iteration=7, product=70
+(alarm-mucho) thread 1: duration=20, iteration=4, product=80
+(alarm-mucho) thread 3: duration=40, iteration=2, product=80
+(alarm-mucho) thread 0: duration=10, iteration=8, product=80
+(alarm-mucho) thread 0: duration=10, iteration=9, product=90
+(alarm-mucho) thread 2: duration=30, iteration=3, product=90
+(alarm-mucho) thread 1: duration=20, iteration=5, product=100
+(alarm-mucho) thread 4: duration=50, iteration=2, product=100
+(alarm-mucho) thread 0: duration=10, iteration=10, product=100
+(alarm-mucho) thread 0: duration=10, iteration=11, product=110
+(alarm-mucho) thread 2: duration=30, iteration=4, product=120
+(alarm-mucho) thread 3: duration=40, iteration=3, product=120
+(alarm-mucho) thread 0: duration=10, iteration=12, product=120
+(alarm-mucho) thread 1: duration=20, iteration=6, product=120
+(alarm-mucho) thread 0: duration=10, iteration=13, product=130
+(alarm-mucho) thread 0: duration=10, iteration=14, product=140
+(alarm-mucho) thread 1: duration=20, iteration=7, product=140
+(alarm-mucho) thread 0: duration=10, iteration=15, product=150
+(alarm-mucho) thread 2: duration=30, iteration=5, product=150
+(alarm-mucho) thread 4: duration=50, iteration=3, product=150
+(alarm-mucho) thread 3: duration=40, iteration=4, product=160
+(alarm-mucho) thread 0: duration=10, iteration=16, product=160
+(alarm-mucho) thread 1: duration=20, iteration=8, product=160
+(alarm-mucho) thread 0: duration=10, iteration=17, product=170
+(alarm-mucho) thread 0: duration=10, iteration=18, product=180
+(alarm-mucho) thread 1: duration=20, iteration=9, product=180
+(alarm-mucho) thread 2: duration=30, iteration=6, product=180
+(alarm-mucho) thread 0: duration=10, iteration=19, product=190
+(alarm-mucho) thread 4: duration=50, iteration=4, product=200
+(alarm-mucho) thread 0: duration=10, iteration=20, product=200
+(alarm-mucho) thread 1: duration=20, iteration=10, product=200
+(alarm-mucho) thread 3: duration=40, iteration=5, product=200
+(alarm-mucho) thread 0: duration=10, iteration=21, product=210
+(alarm-mucho) thread 2: duration=30, iteration=7, product=210
+(alarm-mucho) thread 1: duration=20, iteration=11, product=220
+(alarm-mucho) thread 2: duration=30, iteration=8, product=240
+(alarm-mucho) thread 3: duration=40, iteration=6, product=240
+(alarm-mucho) thread 1: duration=20, iteration=12, product=240
+(alarm-mucho) thread 4: duration=50, iteration=5, product=250
+(alarm-mucho) thread 1: duration=20, iteration=13, product=260
+(alarm-mucho) thread 2: duration=30, iteration=9, product=270
+(alarm-mucho) thread 3: duration=40, iteration=7, product=280
+(alarm-mucho) thread 1: duration=20, iteration=14, product=280
+(alarm-mucho) thread 1: duration=20, iteration=15, product=300
+(alarm-mucho) thread 2: duration=30, iteration=10, product=300
+(alarm-mucho) thread 4: duration=50, iteration=6, product=300
+(alarm-mucho) thread 1: duration=20, iteration=16, product=320
+(alarm-mucho) thread 3: duration=40, iteration=8, product=320
+(alarm-mucho) thread 2: duration=30, iteration=11, product=330
+(alarm-mucho) thread 1: duration=20, iteration=17, product=340
+(alarm-mucho) thread 4: duration=50, iteration=7, product=350
+(alarm-mucho) thread 1: duration=20, iteration=18, product=360
+(alarm-mucho) thread 2: duration=30, iteration=12, product=360
+(alarm-mucho) thread 3: duration=40, iteration=9, product=360
+(alarm-mucho) thread 1: duration=20, iteration=19, product=380
+(alarm-mucho) thread 2: duration=30, iteration=13, product=390
+(alarm-mucho) thread 3: duration=40, iteration=10, product=400
+(alarm-mucho) thread 4: duration=50, iteration=8, product=400
+(alarm-mucho) thread 1: duration=20, iteration=20, product=400
+(alarm-mucho) thread 1: duration=20, iteration=21, product=420
+(alarm-mucho) thread 2: duration=30, iteration=14, product=420
+(alarm-mucho) thread 3: duration=40, iteration=11, product=440
+(alarm-mucho) thread 2: duration=30, iteration=15, product=450
+(alarm-mucho) thread 4: duration=50, iteration=9, product=450
+(alarm-mucho) thread 2: duration=30, iteration=16, product=480
+(alarm-mucho) thread 3: duration=40, iteration=12, product=480
+(alarm-mucho) thread 4: duration=50, iteration=10, product=500
+(alarm-mucho) thread 2: duration=30, iteration=17, product=510
+(alarm-mucho) thread 3: duration=40, iteration=13, product=520
+(alarm-mucho) thread 2: duration=30, iteration=18, product=540
+(alarm-mucho) thread 4: duration=50, iteration=11, product=550
+(alarm-mucho) thread 3: duration=40, iteration=14, product=560
+(alarm-mucho) thread 2: duration=30, iteration=19, product=570
+(alarm-mucho) thread 2: duration=30, iteration=20, product=600
+(alarm-mucho) thread 3: duration=40, iteration=15, product=600
+(alarm-mucho) thread 4: duration=50, iteration=12, product=600
+(alarm-mucho) thread 2: duration=30, iteration=21, product=630
+(alarm-mucho) thread 3: duration=40, iteration=16, product=640
+(alarm-mucho) thread 4: duration=50, iteration=13, product=650
+(alarm-mucho) thread 3: duration=40, iteration=17, product=680
+(alarm-mucho) thread 4: duration=50, iteration=14, product=700
+(alarm-mucho) thread 3: duration=40, iteration=18, product=720
+(alarm-mucho) thread 4: duration=50, iteration=15, product=750
+(alarm-mucho) thread 3: duration=40, iteration=19, product=760
+(alarm-mucho) thread 3: duration=40, iteration=20, product=800
+(alarm-mucho) thread 4: duration=50, iteration=16, product=800
+(alarm-mucho) thread 3: duration=40, iteration=21, product=840
+(alarm-mucho) thread 4: duration=50, iteration=17, product=850
+(alarm-mucho) thread 4: duration=50, iteration=18, product=900
+(alarm-mucho) thread 4: duration=50, iteration=19, product=950
+(alarm-mucho) thread 4: duration=50, iteration=20, product=1000
+(alarm-mucho) thread 4: duration=50, iteration=21, product=1050
+(alarm-mucho) end
+Execution of 'alarm-mucho' complete.

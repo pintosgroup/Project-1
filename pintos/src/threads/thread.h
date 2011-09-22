@@ -5,6 +5,9 @@
 #include <list.h>
 #include <stdint.h>
 
+// Added timer list (Jim)
+struct list_elem timer_list_elem;
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -100,6 +103,8 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+    // Added for sleep function (Jim)
+    int wakeup_time;
   };
 
 /* If false (default), use round-robin scheduler.

@@ -17,6 +17,8 @@
 #error TIMER_FREQ <= 1000 recommended
 #endif
 
+static struct list wait_list;
+
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
@@ -37,6 +39,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init(&wait_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -84,16 +87,44 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
+// Added function to check wakeup time with current time (Jim)
+bool compare_threads_by_wakeup_time ( const struct list_elem *a, const struct list_elem *b, void *aux ) {
+  struct thread *t = list_entry (a, struct thread, elem);
+  bool return_val = t->wakeup_time < timer_ticks();
+  return return_val;
+}
+
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
+  // Old code (Jim)
+  /*int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+    thread_yield ();*/
+
+  struct thread *t = thread_current();
+
+  t->wakeup_time = timer_ticks() + ticks;
+
+  intr_disable();
+  list_insert_ordered (&wait_list, &t->elem, *compare_threads_by_wakeup_time, NULL);
+  intr_enable();
+
+  // Block thread (Jim)
+  struct semaphore *s;
+  sema_init(&s,1);
+  printf("Blocking thread");
+  sema_down(&s);
+  printf("Checking count");
+  
+  // Wake up thread (Jim)
+  if (timer_ticks() >= t->wakeup_time) {
+	sema_up(&s);
+  }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be

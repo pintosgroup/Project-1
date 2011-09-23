@@ -87,11 +87,11 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
-// Added function to check wakeup time with current time (Jim)
-bool compare_threads_by_wakeup_time ( const struct list_elem *a, const struct list_elem *b, void *aux ) {
-  struct thread *t = list_entry (a, struct thread, elem);
-  bool return_val = t->wakeup_time < timer_ticks();
-  return return_val;
+// Added function to check wakeup time between threads (Jim)
+bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct thread *a = list_entry (a_, struct thread, elem);
+  const struct thread *b = list_entry (b_, struct thread, elem);
+  return a->wakeup_time < b->wakeup_time;
 }
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must

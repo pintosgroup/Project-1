@@ -115,16 +115,9 @@ timer_sleep (int64_t ticks)
   intr_enable();
 
   // Block thread (Jim)
-  struct semaphore *s;
-  sema_init(&s,1);
   printf("Blocking thread");
-  sema_down(&s);
-  printf("Checking count");
+  sema_down(t->s);
   
-  // Wake up thread (Jim)
-  if (timer_ticks() >= t->wakeup_time) {
-	sema_up(&s);
-  }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -201,6 +194,12 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  //This function has been updated to wake up the sleeping thread. (Kevin)
+  struct thread *t = thread_current();
+ 
+  if (timer_ticks() >= t->wakeup_time) {
+	sema_up(t->s);
+  }
   ticks++;
   thread_tick ();
 }

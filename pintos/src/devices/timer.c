@@ -101,9 +101,10 @@ timer_sleep (int64_t ticks)
 {
   //printf("Entering timer_sleep\n");
   // Old code (Jim)
-  /*int64_t start = timer_ticks ();
+  int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
+/*
   while (timer_elapsed (start) < ticks) 
     thread_yield ();*/
 
@@ -114,10 +115,10 @@ timer_sleep (int64_t ticks)
   //printf("Setting thread wakeup time\n");
   t->wakeup_time = timer_ticks() + ticks;
   //printf("Inserting thread in wait list\n");
-  list_insert_ordered (&wait_list, &t->timer_list_elem, *compare_threads_by_wakeup_time, NULL);
+  list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
 
   // Block thread (Jim)
-  printf("Blocking thread: %d\n", t->tid);
+  printf("Blocking thread: %d\n Wake up time: %d\n", t->tid,t->wakeup_time);
   //sema_down(t->s);
   thread_block();
 
@@ -208,7 +209,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     if (timer_ticks() >= t->wakeup_time) {
 	//sema_up(t->s);
       list_remove(e);
-      printf("Unblocking thread: %d\n", t->tid);
+      printf("Unblocking thread: %d at %d ticks \n", t->tid, ticks);
       thread_unblock(t);
     }
   }

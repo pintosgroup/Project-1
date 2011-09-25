@@ -173,9 +173,6 @@ thread_create (const char *name, int priority,
   tid_t tid;
   enum intr_level old_level;
   
-  //Initiallize semaphore (Kevin)
-  sema_init(t->s,0);
-  
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -208,6 +205,10 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level (old_level);
+  
+  //Initiallize semaphore (Kevin)
+  //printf("Initialize Semaphore\n");
+  //sema_init(t->s,0);
 
   /* Add to run queue. */
   thread_unblock (t);

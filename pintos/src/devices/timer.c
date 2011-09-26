@@ -89,8 +89,8 @@ timer_elapsed (int64_t then)
 
 // Added function to check wakeup time between threads (Jim)
 bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
-  const struct thread *a = list_entry (a_, struct thread, elem);
-  const struct thread *b = list_entry (b_, struct thread, elem);
+  const struct thread *a = list_entry (a_, struct thread, timer_list_elem);
+  const struct thread *b = list_entry (b_, struct thread, timer_list_elem);
   return a->wakeup_time < b->wakeup_time;
 }
 
@@ -101,7 +101,7 @@ timer_sleep (int64_t ticks)
 {
   //printf("Entering timer_sleep\n");
   // Old code (Jim)
-  int64_t start = timer_ticks ();
+  //int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
 /*
@@ -205,14 +205,16 @@ timer_interrupt (struct intr_frame *args UNUSED)
   e = list_begin (&wait_list);
   if ( e != list_end (&wait_list) ) {
     struct thread *t = list_entry(e, struct thread, timer_list_elem);
-    //printf("Thread in wait list, checking if time up\n");
-    if (timer_ticks() >= t->wakeup_time) {
-	//sema_up(t->s);
+    while ( (e != list_end (&wait_list)) && (timer_ticks() >= t->wakeup_time) ) {
       list_remove(e);
-      printf("Unblocking thread: %d at %d ticks \n", t->tid, ticks);
+      printf("Unblocking thread: %d at %d ticks \n", t->tid, timer_ticks());
       thread_unblock(t);
+      //sema_up(t->s);
+      e = list_next(e);
+      t = list_entry(e, struct thread, timer_list_elem);
     }
   }
+
   ticks++;
   thread_tick ();
 }

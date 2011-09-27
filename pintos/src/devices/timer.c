@@ -99,14 +99,7 @@ bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct l
 void
 timer_sleep (int64_t ticks) 
 {
-  //printf("Entering timer_sleep\n");
-  // Old code (Jim)
-  //int64_t start = timer_ticks ();
-
   ASSERT (intr_get_level () == INTR_ON);
-/*
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();*/
 
   intr_disable();
 
@@ -118,9 +111,9 @@ timer_sleep (int64_t ticks)
   list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
 
   // Block thread (Jim)
-  printf("Blocking thread: %d\n Wake up time: %d\n", t->tid,t->wakeup_time);
-  //sema_down(t->s);
-  thread_block();
+  //printf("Blocking thread: %d\n Wake up time: %d\n", t->tid,t->wakeup_time);
+  sema_down(&t->s);
+  //thread_block();
 
   intr_enable();
   
@@ -206,11 +199,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
   if ( e != list_end (&wait_list) ) {
     struct thread *t = list_entry(e, struct thread, timer_list_elem);
     while ( (e != list_end (&wait_list)) && (timer_ticks() >= t->wakeup_time) ) {
-      list_remove(e);
-      printf("Unblocking thread: %d at %d ticks \n", t->tid, timer_ticks());
-      thread_unblock(t);
-      //sema_up(t->s);
-      e = list_next(e);
+      e = list_remove(e);
+      //printf("Unblocking thread: %d at %d ticks \n", t->tid, timer_ticks());
+      //thread_unblock(t);
+      sema_up(&t->s);
+      //e = list_next(e);
       t = list_entry(e, struct thread, timer_list_elem);
     }
   }

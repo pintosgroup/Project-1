@@ -172,7 +172,7 @@ thread_create (const char *name, int priority,
   struct switch_threads_frame *sf;
   tid_t tid;
   enum intr_level old_level;
-
+  
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -469,6 +469,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  
+  //Initiallize semaphore (Kevin)
+  sema_init(&t->s,0);
+
   list_push_back (&all_list, &t->allelem);
 }
 

@@ -17,6 +17,8 @@
 #error TIMER_FREQ <= 1000 recommended
 #endif
 
+static struct list wait_list;
+
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
@@ -37,6 +39,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init(&wait_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -84,16 +87,35 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
+// Added function to check wakeup time between threads (Jim)
+bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct thread *a = list_entry (a_, struct thread, timer_list_elem);
+  const struct thread *b = list_entry (b_, struct thread, timer_list_elem);
+  return a->wakeup_time <= b->wakeup_time;
+}
+
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
-
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+
+  intr_disable();
+
+  struct thread *t = thread_current();
+
+  //printf("Setting thread wakeup time\n");
+  t->wakeup_time = timer_ticks() + ticks;
+  //printf("Inserting thread in wait list\n");
+  list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
+
+  // Block thread (Jim)
+  //printf("Blocking thread: %d\n Wake up time: %d\n", t->tid,t->wakeup_time);
+  sema_down(&t->s);
+
+  intr_enable();
+  
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -170,6 +192,16 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  //This function has been updated to wake up the sleeping thread. (Kevin)
+  struct list_elem *e = list_begin (&wait_list);
+  struct thread *t = list_entry(e, struct thread, timer_list_elem);
+  while ( (e != list_end (&wait_list)) && (timer_ticks() >= t->wakeup_time) ) {
+    //printf("Unblocking thread: %d at %d ticks \n", t->tid, timer_ticks());
+    sema_up(&t->s);
+    e = list_remove(e);
+    t = list_entry(e, struct thread, timer_list_elem);
+  }
+
   ticks++;
   thread_tick ();
 }

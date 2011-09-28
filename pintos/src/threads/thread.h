@@ -4,7 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include <synch.h>
+#include <threads/synch.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -93,7 +93,7 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    //struct semaphore *s;			//semaphore (Kevin)
+    struct semaphore s;			//semaphore (Kevin)
 
     // Added timer list (Jim)
     struct list_elem timer_list_elem;

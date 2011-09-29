@@ -5,9 +5,9 @@ CIS 520 - Programming Project #1
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@k-state.edu>
-FirstName LastName <email@k-state.edu>
-...
+Jim Groening <groening@k-state.edu>
+Jarrod Krebs <krebs@k-state.edu>
+Kevin Schwarz <kschwar8@k-state.edu>
 
 ---- PRELIMINARIES ----
 
@@ -28,6 +28,13 @@ FirstName LastName <email@k-state.edu>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+static struct list wait_list;
+
+struct thread *t = thread_current();
+
+struct list_elem timer_list_elem;
+
+struct semaphore s;
 
 ---- ALGORITHMS ----
 

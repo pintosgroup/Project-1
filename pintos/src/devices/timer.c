@@ -91,7 +91,15 @@ timer_elapsed (int64_t then)
 bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
   const struct thread *a = list_entry (a_, struct thread, timer_list_elem);
   const struct thread *b = list_entry (b_, struct thread, timer_list_elem);
-  return a->wakeup_time <= b->wakeup_time;
+  if ( a->wakeup_time < b->wakeup_time ) {
+    return true;
+  }
+  else if ( a->wakeup_time == b->wakeup_time ) {
+    return a->priority >= b->priority;
+  }
+  else {
+    return false;
+  }
 }
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
@@ -108,6 +116,7 @@ timer_sleep (int64_t ticks)
   //printf("Setting thread wakeup time\n");
   t->wakeup_time = timer_ticks() + ticks;
   //printf("Inserting thread in wait list\n");
+  //printf("Thread %d with priority %d wake up time is %d\n", t->tid, t->priority, t->wakeup_time);
   list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
 
   // Block thread (Jim)

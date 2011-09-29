@@ -118,6 +118,7 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
+  //printf("Threads started\n");
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -224,13 +225,13 @@ thread_create (const char *name, int priority,
 void
 thread_block (void) 
 {
-  printf("Blocking thread ");
+  /*printf("Blocking thread ");
   if (thread_current() == idle_thread ) {
     printf("Idle\n");
   }
   else {
     printf("%d\n", thread_current()->tid);
-  }
+  }*/
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
@@ -240,8 +241,8 @@ thread_block (void)
 
 // Added function to check wakeup time between threads (Jim)
 bool compare_threads_by_priority ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
-  const struct thread *a = list_entry (a_, struct thread, timer_list_elem);
-  const struct thread *b = list_entry (b_, struct thread, timer_list_elem);
+  const struct thread *a = list_entry (a_, struct thread, elem);
+  const struct thread *b = list_entry (b_, struct thread, elem);
   return a->priority > b->priority;
 }
 
@@ -264,13 +265,25 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   // Inserted into ordered list (Jim)
   //list_push_back (&ready_list, &t->elem);
-  printf("Inserting thread in ready list\n");
-  list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority, NULL);
+  if ( t != idle_thread ) {
+    //printf("Inserting thread %d in ready list\n", t->tid);
+    list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority, NULL);
+    struct list_elem *e;
+    //printf("Current ready list:\n");
+    //for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
+      //struct thread *cur = list_entry(e, struct thread, elem);
+      //printf("\tThread %d with priority %d\n", cur->tid, cur->priority);
+    //}
+  }
+  else {
+    list_push_back (&ready_list, &t->elem);
+  }
   t->status = THREAD_READY;
   intr_set_level (old_level);
 
   // Yield if threads priority is greater (Jim)
-  if ( t->priority > thread_current()->priority ) {
+  if ( t->priority > thread_current()->priority && thread_current() != idle_thread ) {
+    //printf("Thread %d with priority %d is yielding to thread %d with priority %d\n", thread_current()->tid, thread_current()->priority, t->tid, t->priority);
     thread_yield();
   }
 }
@@ -339,15 +352,14 @@ thread_yield (void)
   
   ASSERT (!intr_context ());
 
-  printf("Yielding\n");
   old_level = intr_disable ();
   if (cur != idle_thread) {
     // Changed to ordered list (Jim)
     //list_push_back (&ready_list, &cur->elem);
-    printf("Inserting thread in ready list (yield)\n");
+    //printf("Inserting thread in ready list (yield)\n");
     list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority, NULL);
   }
-  printf("Thread is not idle\n");
+  //printf("Thread %d is idle\n", cur->tid);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -601,6 +613,9 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
+  //if ( next != idle_thread ) {
+    //printf("Thread %d is now running\n", next->tid);
+  //}
 }
 
 /* Returns a tid to use for a new thread. */

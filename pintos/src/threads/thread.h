@@ -106,7 +106,7 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
     // Added for sleep function (Jim)
-    int wakeup_time;
+    int64_t wakeup_time;
   };
 
 /* If false (default), use round-robin scheduler.

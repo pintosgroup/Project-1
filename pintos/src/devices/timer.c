@@ -107,19 +107,20 @@ bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct l
 void
 timer_sleep (int64_t ticks) 
 {
-  ASSERT (intr_get_level () == INTR_ON);
-
+  enum intr_level old_level;
   struct thread *t = thread_current();
+
+  ASSERT (intr_get_level () == INTR_ON);
 
   //printf("Setting thread wakeup time\n");
   t->wakeup_time = timer_ticks() + ticks;
 
-  intr_disable();
+  old_level = intr_disable ();
   //printf("Inserting thread in wait list\n");
   //printf("Thread %d with priority %d wake up time is %d\n", t->tid, t->priority, t->wakeup_time);
   list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
 
-  intr_enable();
+  intr_set_level (old_level);
 
   // Block thread (Jim)
   //printf("Blocking thread: %d\n Wake up time: %d\n", t->tid,t->wakeup_time);

@@ -211,8 +211,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
     //printf("Unblocking thread: %d at %d ticks \n", t->tid, timer_ticks());
     sema_up(&t->s);
     e = list_remove(e);
-    if (e != list_end (&wait_list))
+    if (e != list_end (&wait_list)) {
       t = list_entry(e, struct thread, timer_list_elem);
+    }
   }
 }
 

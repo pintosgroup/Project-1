@@ -109,21 +109,21 @@ timer_sleep (int64_t ticks)
 {
   ASSERT (intr_get_level () == INTR_ON);
 
-  intr_disable();
-
   struct thread *t = thread_current();
 
   //printf("Setting thread wakeup time\n");
   t->wakeup_time = timer_ticks() + ticks;
+
+  intr_disable();
   //printf("Inserting thread in wait list\n");
   //printf("Thread %d with priority %d wake up time is %d\n", t->tid, t->priority, t->wakeup_time);
   list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
 
+  intr_enable();
+
   // Block thread (Jim)
   //printf("Blocking thread: %d\n Wake up time: %d\n", t->tid,t->wakeup_time);
   sema_down(&t->s);
-
-  intr_enable();
   
 }
 
@@ -201,6 +201,9 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  ticks++;
+  thread_tick ();
+
   //This function has been updated to wake up the sleeping thread. (Kevin)
   struct list_elem *e = list_begin (&wait_list);
   struct thread *t = list_entry(e, struct thread, timer_list_elem);
@@ -208,11 +211,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
     //printf("Unblocking thread: %d at %d ticks \n", t->tid, timer_ticks());
     sema_up(&t->s);
     e = list_remove(e);
-    t = list_entry(e, struct thread, timer_list_elem);
+    if (e != list_end (&wait_list))
+      t = list_entry(e, struct thread, timer_list_elem);
   }
-
-  ticks++;
-  thread_tick ();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

@@ -268,24 +268,25 @@ thread_unblock (struct thread *t)
   if ( t != idle_thread ) {
     //printf("Inserting thread %d in ready list\n", t->tid);
     list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority, NULL);
-    struct list_elem *e;
-    //printf("Current ready list:\n");
-    //for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
-      //struct thread *cur = list_entry(e, struct thread, elem);
-      //printf("\tThread %d with priority %d\n", cur->tid, cur->priority);
-    //}
+    /*struct list_elem *e;
+    printf("Current ready list:\n");
+    for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
+      struct thread *cur = list_entry(e, struct thread, elem);
+      printf("\tThread %d with priority %d\n", cur->tid, cur->priority);
+    }*/
   }
   else {
     list_push_back (&ready_list, &t->elem);
   }
   t->status = THREAD_READY;
-  intr_set_level (old_level);
 
   // Yield if threads priority is greater (Jim)
   if ( t->priority > thread_current()->priority && thread_current() != idle_thread ) {
     //printf("Thread %d with priority %d is yielding to thread %d with priority %d\n", thread_current()->tid, thread_current()->priority, t->tid, t->priority);
     thread_yield();
   }
+
+  intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */
@@ -358,6 +359,12 @@ thread_yield (void)
     //list_push_back (&ready_list, &cur->elem);
     //printf("Inserting thread in ready list (yield)\n");
     list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority, NULL);
+    /*struct list_elem *e;
+    printf("Current ready list (yield):\n");
+    for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
+      struct thread *cur = list_entry(e, struct thread, elem);
+      printf("\tThread %d with priority %d\n", cur->tid, cur->priority);
+    }*/
   }
   //printf("Thread %d is idle\n", cur->tid);
   cur->status = THREAD_READY;

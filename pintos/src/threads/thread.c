@@ -72,7 +72,8 @@ void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
 //(Jim)
-bool compare_threads_by_priority ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
+bool compare_threads_by_donated_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
+int get_highest_priority(struct thread *);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -239,11 +240,22 @@ thread_block (void)
   schedule ();
 }
 
+// Get the highest priority (donated or otherwise) (Jim)
+int get_highest_priority ( struct thread *t ) {
+  if ( list_empty(&t->donor_list) ) {
+    return t->priority;
+  }
+  else {
+    return list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem)->priority;
+    //return get_highest_priority(list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem));
+  }
+}
+
 // Added function to check wakeup time between threads (Jim)
-bool compare_threads_by_priority ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+bool compare_threads_by_donated_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
   const struct thread *a = list_entry (a_, struct thread, elem);
   const struct thread *b = list_entry (b_, struct thread, elem);
-  return a->priority > b->priority;
+  return get_highest_priority(a) > get_highest_priority(b);
 }
 
 /* Transitions a blocked thread T to the ready-to-run state.
@@ -267,7 +279,7 @@ thread_unblock (struct thread *t)
   //list_push_back (&ready_list, &t->elem);
   if ( t != idle_thread ) {
     //printf("Inserting thread %d in ready list\n", t->tid);
-    list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority, NULL);
+    list_insert_ordered(&ready_list, &t->elem, compare_threads_by_donated_priority_elem, NULL);
     /*struct list_elem *e;
     printf("Current ready list:\n");
     for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
@@ -280,13 +292,13 @@ thread_unblock (struct thread *t)
   }
   t->status = THREAD_READY;
 
+  intr_set_level (old_level);
+
   // Yield if threads priority is greater (Jim)
-  if ( t->priority > thread_current()->priority && thread_current() != idle_thread ) {
+  if ( get_highest_priority(t) > thread_get_priority() && thread_current() != idle_thread ) {
     //printf("Thread %d with priority %d is yielding to thread %d with priority %d\n", thread_current()->tid, thread_current()->priority, t->tid, t->priority);
     thread_yield();
   }
-
-  intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */
@@ -358,7 +370,8 @@ thread_yield (void)
     // Changed to ordered list (Jim)
     //list_push_back (&ready_list, &cur->elem);
     //printf("Inserting thread in ready list (yield)\n");
-    list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority, NULL);
+    list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_donated_priority_elem, NULL);
+    //printf("\nThread %d yielding with priority %d\n", cur->tid, cur->priority);
     /*struct list_elem *e;
     printf("Current ready list (yield):\n");
     for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
@@ -395,7 +408,7 @@ thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
   if (list_size(&ready_list) != 0) {
-    if (new_priority < list_entry (list_begin(&ready_list), struct thread, elem)->priority) {
+    if (new_priority < get_highest_priority( list_entry (list_begin(&ready_list), struct thread, elem) )) {
       thread_yield();
     }
   }
@@ -405,7 +418,10 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  // Get the highest priority (doanted or otherwise) (Jim)
+  return get_highest_priority(thread_current());
+
+  //return thread_current ()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -527,6 +543,9 @@ init_thread (struct thread *t, const char *name, int priority)
   
   //Initiallize semaphore (Kevin)
   sema_init(&t->s,0);
+  //Initialize donor and donee list (Jim)
+  list_init (&t->donor_list);
+  list_init (&t->donee_list);
 
   list_push_back (&all_list, &t->allelem);
 }
@@ -626,7 +645,7 @@ schedule (void)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
   //if ( next != idle_thread ) {
-    //printf("Thread %d is now running\n", next->tid);
+    //printf("\nThread %d is now running\n", next->tid);
   //}
 }
 

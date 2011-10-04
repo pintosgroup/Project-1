@@ -48,6 +48,22 @@ sema_init (struct semaphore *sema, unsigned value)
 
   sema->value = value;
   list_init (&sema->waiters);
+  // Initialize locked list (Jim)
+  list_init (&sema->locked_list);
+}
+
+// Added function to check priority between threads for locked list (Jim)
+bool compare_threads_by_priority_locked ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct thread *a = list_entry (a_, struct thread, locked_list_elem);
+  const struct thread *b = list_entry (b_, struct thread, locked_list_elem);
+  return a->priority < b->priority;
+}
+
+// Added function to check priority between threads for donor list (Jim)
+bool compare_threads_by_donated_priority_donor ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct thread *a = list_entry (a_, struct thread, donor_list_elem);
+  const struct thread *b = list_entry (b_, struct thread, donor_list_elem);
+  return get_highest_priority(a) > get_highest_priority(b);
 }
 
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
@@ -68,10 +84,39 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
+      // Insert thread in wait list ordered by priority (Jim)
       //list_push_back (&sema->waiters, &thread_current ()->elem);
-      list_insert_ordered(&sema->waiters, &thread_current()->elem, compare_threads_by_priority, NULL);
+      printf("Inserting into waiters list\n");
+      list_insert_ordered(&sema->waiters, &thread_current()->elem, compare_threads_by_donated_priority_elem, NULL);
+
+      // Go through each locked thread and donate priority if necessary (Jim)
+      printf("Donating priorities\n");
+      struct list_elem *e;
+      for (e = list_begin (&sema->locked_list); e != list_end (&sema->locked_list); e = list_next (e)) {
+        struct thread *locked_t = list_entry(e, struct thread, locked_list_elem);
+        if ( locked_t->priority < thread_get_priority() ) {
+          list_insert_ordered(&locked_t->donor_list, &thread_current()->donor_list_elem, compare_threads_by_donated_priority_donor, NULL);
+          list_push_back(&thread_current()->donee_list, &locked_t->donee_list_elem);
+        }
+      }
+      printf("Blocking thread\n");
+
       thread_block ();
+
+      // Go through each donee thread and remove current thread from thread's donor list and remove thread from donee list
+      printf("Removing donations\n");
+      for (e = list_begin (&thread_current()->donee_list); e != list_end(&thread_current()->donee_list); e = list_next(e)) {
+        struct thread *donee = list_entry(e, struct thread, donee_list_elem);
+        list_remove(&thread_current()->donor_list_elem);
+        list_remove(&donee->donee_list_elem);
+      }
+
     }
+
+  // Add to locked list (Jim)
+  printf("Inserting into locked list\n");
+  list_insert_ordered(&sema->locked_list, &thread_current()->locked_list_elem, compare_threads_by_priority_locked, NULL);
+
   sema->value--;
   intr_set_level (old_level);
 }
@@ -114,6 +159,17 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
+
+  printf("Removing from locked list\n");
+  // Go through each locked thread and remove element when found (Jim)
+  struct list_elem *e;
+  for (e = list_begin (&sema->locked_list); e != list_end (&sema->locked_list); e = list_next (e)) {
+    if ( e == &thread_current()->locked_list_elem ) {
+      list_remove(&thread_current()->locked_list_elem);
+      break;
+    }
+  }
+
   if (!list_empty (&sema->waiters)) 
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
@@ -297,7 +353,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   
   sema_init (&waiter.semaphore, 0);
   //list_push_back (&cond->waiters, &waiter.elem);
-  list_insert_ordered(&cond->waiters, &waiter.elem, compare_threads_by_priority, NULL);
+  list_insert_ordered(&cond->waiters, &waiter.elem, compare_threads_by_donated_priority_elem, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);

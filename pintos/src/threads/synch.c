@@ -86,36 +86,37 @@ sema_down (struct semaphore *sema)
     {
       // Insert thread in wait list ordered by priority (Jim)
       //list_push_back (&sema->waiters, &thread_current ()->elem);
-      printf("Inserting into waiters list\n");
+      //printf("Inserting into waiters list\n");
       list_insert_ordered(&sema->waiters, &thread_current()->elem, compare_threads_by_donated_priority_elem, NULL);
 
       // Go through each locked thread and donate priority if necessary (Jim)
-      printf("Donating priorities\n");
-      struct list_elem *e;
+      //printf("Donating priorities\n");
+      /*struct list_elem *e;
       for (e = list_begin (&sema->locked_list); e != list_end (&sema->locked_list); e = list_next (e)) {
         struct thread *locked_t = list_entry(e, struct thread, locked_list_elem);
         if ( locked_t->priority < thread_get_priority() ) {
           list_insert_ordered(&locked_t->donor_list, &thread_current()->donor_list_elem, compare_threads_by_donated_priority_donor, NULL);
           list_push_back(&thread_current()->donee_list, &locked_t->donee_list_elem);
         }
-      }
-      printf("Blocking thread\n");
+      }*/
+      //printf("Blocking thread\n");
 
       thread_block ();
 
       // Go through each donee thread and remove current thread from thread's donor list and remove thread from donee list
-      printf("Removing donations\n");
-      for (e = list_begin (&thread_current()->donee_list); e != list_end(&thread_current()->donee_list); e = list_next(e)) {
+      //printf("Removing donations\n");
+      /*for (e = list_begin (&thread_current()->donee_list); e != list_end(&thread_current()->donee_list); e = list_next(e)) {
         struct thread *donee = list_entry(e, struct thread, donee_list_elem);
         list_remove(&thread_current()->donor_list_elem);
         list_remove(&donee->donee_list_elem);
-      }
+      }*/
 
     }
 
   // Add to locked list (Jim)
-  printf("Inserting into locked list\n");
-  list_insert_ordered(&sema->locked_list, &thread_current()->locked_list_elem, compare_threads_by_priority_locked, NULL);
+  //printf("Inserting into locked list\n");
+  //list_insert_ordered(&sema->locked_list, &thread_current()->locked_list_elem, compare_threads_by_priority_locked, NULL);
+  //list_push_back (&sema->locked_list, &thread_current()->locked_list_elem);
 
   sema->value--;
   intr_set_level (old_level);
@@ -160,15 +161,18 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
 
-  printf("Removing from locked list\n");
+  //printf("Removing from locked list\n");
   // Go through each locked thread and remove element when found (Jim)
-  struct list_elem *e;
-  for (e = list_begin (&sema->locked_list); e != list_end (&sema->locked_list); e = list_next (e)) {
-    if ( e == &thread_current()->locked_list_elem ) {
-      list_remove(&thread_current()->locked_list_elem);
-      break;
+  /*if (!list_empty(&sema->locked_list)) {
+    struct list_elem *e;
+    for (e = list_begin (&sema->locked_list); e != list_end (&sema->locked_list); e = list_next (e)) {
+      if ( e == &thread_current()->locked_list_elem ) {
+        //printf("Acutally removing\n");
+        list_remove(&thread_current()->locked_list_elem);
+        break;
+      }
     }
-  }
+  }*/
 
   if (!list_empty (&sema->waiters)) 
     thread_unblock (list_entry (list_pop_front (&sema->waiters),

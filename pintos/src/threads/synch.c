@@ -99,9 +99,11 @@ sema_down (struct semaphore *sema)
           list_push_back(&thread_current()->donee_list, &locked_t->donee_list_elem);
         }
       }*/
-      //printf("Blocking thread\n");
+      //printf("Blocking thread %d\n", thread_current()->tid);
 
       thread_block ();
+
+      //printf("Thread %d returning from block\n", thread_current()->tid);
 
       // Go through each donee thread and remove current thread from thread's donor list and remove thread from donee list
       //printf("Removing donations\n");
@@ -174,15 +176,15 @@ sema_up (struct semaphore *sema)
       }
     }
   }*/
+  sema->value++;
 
   if (!list_empty (&sema->waiters)) {
-    struct thread *t;
+    /*struct thread *t;
     t = list_entry(list_begin(&sema->waiters), struct thread, elem);
-    //printf("Waiters is not empty: Thread %d with priority %d\n", t->tid, t->priority);
+    printf("Waiters is not empty: Thread %d with priority %d\n", t->tid, t->priority);*/
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
   }
-  sema->value++;
   intr_set_level (old_level);
 }
 

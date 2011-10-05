@@ -339,6 +339,9 @@ struct semaphore_elem
   {
     struct list_elem elem;              /* List element. */
     struct semaphore semaphore;         /* This semaphore. */
+
+    // Priority of thread (Jim)
+    int priority;
   };
 
 /* Initializes condition variable COND.  A condition variable
@@ -350,6 +353,13 @@ cond_init (struct condition *cond)
   ASSERT (cond != NULL);
 
   list_init (&cond->waiters);
+}
+
+// Added function to check wakeup time between threads (Jim)
+bool compare_threads_by_priority_waiter_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct semaphore_elem *a = list_entry (a_, struct semaphore_elem, elem);
+  const struct semaphore_elem *b = list_entry (b_, struct semaphore_elem, elem);
+  return a->priority > b->priority;
 }
 
 /* Atomically releases LOCK and waits for COND to be signaled by
@@ -383,8 +393,15 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
+  waiter.priority = thread_current()->priority;
   //list_push_back (&cond->waiters, &waiter.elem);
-  list_insert_ordered(&cond->waiters, &waiter.elem, compare_threads_by_priority_elem, NULL);
+  list_insert_ordered(&cond->waiters, &waiter.elem, compare_threads_by_priority_waiter_elem, NULL);
+  /*struct list_elem *e;
+  printf("Current condition wait list:\n");
+  for (e = list_begin (&cond->waiters); e != list_end (&cond->waiters); e = list_next (e)) {
+    struct semaphore_elem *cur = list_entry(e, struct semaphore_elem, elem);
+    printf("\tPriority %d\n", cur->priority);
+  }*/
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);

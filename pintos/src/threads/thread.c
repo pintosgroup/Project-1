@@ -292,13 +292,13 @@ thread_unblock (struct thread *t)
   }
   t->status = THREAD_READY;
 
+  intr_set_level (old_level);
+
   // Yield if threads priority is greater (Jim)
-  if ( t->priority > thread_get_priority() && thread_current() != idle_thread ) {
+  if ( (t->priority > running_thread()->priority) && thread_current() != idle_thread ) {
     //printf("Thread %d with priority %d is yielding to thread %d with priority %d\n", thread_current()->tid, thread_current()->priority, t->tid, t->priority);
     thread_yield();
   }
-
-  intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */
@@ -371,8 +371,8 @@ thread_yield (void)
     //list_push_back (&ready_list, &cur->elem);
     //printf("Inserting thread in ready list (yield)\n");
     list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority_elem, NULL);
-    //printf("\nThread %d yielding with priority %d\n", cur->tid, cur->priority);
-    /*struct list_elem *e;
+    /*printf("\nThread %d yielding with priority %d\n", cur->tid, cur->priority);
+    struct list_elem *e;
     printf("Current ready list (yield):\n");
     for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
       struct thread *cur = list_entry(e, struct thread, elem);
@@ -407,6 +407,7 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  thread_current ()->old_priority = new_priority;
   if (list_size(&ready_list) != 0) {
     if (new_priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
       thread_yield();
@@ -647,9 +648,9 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
-  //if ( next != idle_thread ) {
-    //printf("\nThread %d is now running\n", next->tid);
-  //}
+  /*if ( next != idle_thread ) {
+    printf("\nThread %d is now running instead of %d\n", next->tid, cur->tid);
+  }*/
 }
 
 /* Returns a tid to use for a new thread. */

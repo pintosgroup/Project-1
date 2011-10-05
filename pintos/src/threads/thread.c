@@ -545,8 +545,8 @@ init_thread (struct thread *t, const char *name, int priority)
   //Initiallize semaphore (Kevin)
   sema_init(&t->s,0);
   //Initialize donor and donee list (Jim)
-  /*list_init (&t->donor_list);
-  list_init (&t->donee_list);*/
+  list_init (&t->donor_list);
+  //list_init (&t->donee_list);
 
   // Set original priority
   t->old_priority = priority;

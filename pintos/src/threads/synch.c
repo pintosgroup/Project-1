@@ -247,9 +247,13 @@ lock_init (struct lock *lock)
 
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
+}
 
-  // Initialize donor thread
-  lock->donor = NULL;
+// Added function to check wakeup time between threads (Jim)
+bool compare_threads_by_priority_donor_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct thread *a = list_entry (a_, struct thread, donor_list_elem);
+  const struct thread *b = list_entry (b_, struct thread, donor_list_elem);
+  return a->priority > b->priority;
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -270,9 +274,11 @@ lock_acquire (struct lock *lock)
   // (Jim)
   if (lock->holder != NULL) {
     //printf("Thread %d is currently the holder\n", lock->holder->tid);
-    if (thread_current()->priority > lock->holder->priority) {
-      lock->holder->priority = thread_current()->priority;
-      lock->donor = thread_current();
+    list_insert_ordered(&lock->holder->donor_list, &thread_current()->donor_list_elem, compare_threads_by_priority_donor_elem, NULL);
+    struct thread *donor = list_entry(list_begin(&lock->holder->donor_list), struct thread, donor_list_elem);
+    if (donor->priority > lock->holder->old_priority) {
+      lock->holder->priority = donor->priority;
+      //lock->donor = donor;
     }
   }
 
@@ -312,10 +318,25 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   // (Jim)
-  if (lock->donor != NULL) {
+  if (!list_empty(&lock->semaphore.waiters)) {
     //printf("Thread %d is the donor for the holder\n", lock->donor->tid);
-    lock->holder->priority = lock->holder->old_priority;
-    lock->donor = NULL;
+    struct list_elem *e;
+    for (e = list_begin (&lock->semaphore.waiters); e != list_end(&lock->semaphore.waiters); e = list_next(e)) {
+      struct thread *t = list_entry(e, struct thread, elem);
+      list_remove(&t->donor_list_elem);
+    }
+    if (!list_empty(&lock->holder->donor_list)) {
+      struct thread *donor = list_entry(list_begin(&lock->holder->donor_list), struct thread, donor_list_elem);
+      if (donor->priority > lock->holder->old_priority) {
+        lock->holder->priority = donor->priority;
+      }
+      else {
+        lock->holder->priority = lock->holder->old_priority;
+      }
+    }
+    else {
+      lock->holder->priority = lock->holder->old_priority;
+    }
     //printf("Current thread's (%d) priority is %d. Holder's (%d) priority is %d.\n", thread_current()->tid, thread_current()->priority, lock->holder->tid, lock->holder->priority);
   }
 

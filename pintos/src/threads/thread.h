@@ -101,11 +101,11 @@ struct thread
     struct list_elem timer_list_elem;
 
     // Added donation list items (Jim)
-    /*struct list donor_list;
-    struct list donee_list;
+    struct list donor_list;
+    //struct list donee_list;
     struct list_elem donor_list_elem;
-    struct list_elem donee_list_elem;
-    struct list_elem locked_list_elem;*/
+    //struct list_elem donee_list_elem;
+    //struct list_elem locked_list_elem;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

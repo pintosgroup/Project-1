@@ -89,8 +89,8 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    // Added array of donated priorities (Jim)
-    int donated_priorities[8];
+    // Thread's original priority (Jim)
+    int old_priority;
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -101,11 +101,11 @@ struct thread
     struct list_elem timer_list_elem;
 
     // Added donation list items (Jim)
-    struct list donor_list;
+    /*struct list donor_list;
     struct list donee_list;
     struct list_elem donor_list_elem;
     struct list_elem donee_list_elem;
-    struct list_elem locked_list_elem;
+    struct list_elem locked_list_elem;*/
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -155,7 +155,7 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 // (Jim)
-bool compare_threads_by_donated_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
-int get_highest_priority(struct thread *);
+bool compare_threads_by_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
+//int get_highest_priority(struct thread *);
 
 #endif /* threads/thread.h */

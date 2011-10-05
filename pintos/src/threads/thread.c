@@ -292,13 +292,13 @@ thread_unblock (struct thread *t)
   }
   t->status = THREAD_READY;
 
-  intr_set_level (old_level);
-
   // Yield if threads priority is greater (Jim)
   if ( t->priority > thread_get_priority() && thread_current() != idle_thread ) {
     //printf("Thread %d with priority %d is yielding to thread %d with priority %d\n", thread_current()->tid, thread_current()->priority, t->tid, t->priority);
     thread_yield();
   }
+
+  intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */

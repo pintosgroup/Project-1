@@ -175,9 +175,13 @@ sema_up (struct semaphore *sema)
     }
   }*/
 
-  if (!list_empty (&sema->waiters)) 
+  if (!list_empty (&sema->waiters)) {
+    struct thread *t;
+    t = list_entry(list_begin(&sema->waiters), struct thread, elem);
+    //printf("Waiters is not empty: Thread %d with priority %d\n", t->tid, t->priority);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
+  }
   sema->value++;
   intr_set_level (old_level);
 }
@@ -263,8 +267,10 @@ lock_acquire (struct lock *lock)
 
   // (Jim)
   if (lock->holder != NULL) {
+    //printf("Thread %d is currently the holder\n", lock->holder->tid);
     if (thread_current()->priority > lock->holder->priority) {
       lock->holder->priority = thread_current()->priority;
+      lock->donor = thread_current();
     }
   }
 
@@ -304,7 +310,12 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   // (Jim)
-  lock->holder->priority = lock->holder->old_priority;
+  if (lock->donor != NULL) {
+    //printf("Thread %d is the donor for the holder\n", lock->donor->tid);
+    lock->holder->priority = lock->holder->old_priority;
+    lock->donor = NULL;
+    //printf("Current thread's (%d) priority is %d. Holder's (%d) priority is %d.\n", thread_current()->tid, thread_current()->priority, lock->holder->tid, lock->holder->priority);
+  }
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);

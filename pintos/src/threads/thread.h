@@ -89,24 +89,25 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+
     // Thread's original priority (Jim)
     int old_priority;
+
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    struct semaphore s;			//semaphore (Kevin)
 
-    // Added timer list (Jim)
+    // Semaphore for sleeping (Kevin)
+    struct semaphore s;
+
+    // Added timer list element (Jim)
     struct list_elem timer_list_elem;
 
     // Added donation list items (Jim)
     struct list donor_list;
-    //struct list donee_list;
     struct list_elem donor_list_elem;
-    //struct list_elem donee_list_elem;
-    //struct list_elem locked_list_elem;
-    struct thread *donee;
+    struct thread *donee;		// Thread can only ever donate to one other thread (lock)
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -115,6 +116,7 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
     // Added for sleep function (Jim)
     int64_t wakeup_time;
   };
@@ -155,9 +157,8 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-// (Jim)
-bool compare_threads_by_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
-void donate_nested_priority (struct thread *t);
-//int get_highest_priority(struct thread *);
+// Added functions (Jim)
+bool compare_threads_by_priority_elem ( const struct list_elem *, const struct list_elem *, void * );
+void donate_nested_priority (struct thread *);
 
 #endif /* threads/thread.h */

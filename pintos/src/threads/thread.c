@@ -402,14 +402,54 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+void donate_nested_priority (struct thread *t) {
+  if (t->donee == NULL) {
+    return;
+  }
+  else {
+
+    if (!list_empty(&t->donor_list)) {
+      struct thread *donor = list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem);
+      if (donor->priority > t->donee->priority) {
+        t->donee->priority = donor->priority;
+      }
+      else {
+        t->priority = t->old_priority;
+      }
+    }
+    else {
+      t->priority = t->old_priority;
+    }
+
+    donate_nested_priority(t->donee);
+  }
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-  thread_current ()->old_priority = new_priority;
+  struct thread *cur = thread_current();
+
+  cur->old_priority = new_priority;
+
+  if (!list_empty(&cur->donor_list)) {
+    struct thread *donor = list_entry(list_begin(&cur->donor_list), struct thread, donor_list_elem);
+    if (donor->priority > cur->old_priority) {
+      cur->priority = donor->priority;
+    }
+    else {
+      cur->priority = cur->old_priority;
+    }
+  }
+  else {
+    cur->priority = cur->old_priority;
+  }
+  
+  donate_nested_priority (cur);
+
   if (list_size(&ready_list) != 0) {
-    if (new_priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
+    if (cur->priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
       thread_yield();
     }
   }
@@ -547,6 +587,7 @@ init_thread (struct thread *t, const char *name, int priority)
   //Initialize donor and donee list (Jim)
   list_init (&t->donor_list);
   //list_init (&t->donee_list);
+  t->donee = NULL;
 
   // Set original priority
   t->old_priority = priority;

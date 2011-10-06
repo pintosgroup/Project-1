@@ -106,6 +106,7 @@ struct thread
     struct list_elem donor_list_elem;
     //struct list_elem donee_list_elem;
     //struct list_elem locked_list_elem;
+    struct thread *donee;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -156,6 +157,7 @@ int thread_get_load_avg (void);
 
 // (Jim)
 bool compare_threads_by_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
+void donate_nested_priority (struct thread *t);
 //int get_highest_priority(struct thread *);
 
 #endif /* threads/thread.h */

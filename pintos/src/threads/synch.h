@@ -9,8 +9,6 @@ struct semaphore
   {
     unsigned value;             /* Current value. */
     struct list waiters;        /* List of waiting threads. */
-    // Locked list (Jim)
-    //struct list locked_list;
   };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -42,6 +40,10 @@ void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
+
+// Added functions (Jim)
+bool compare_threads_by_priority_donor_elem (const struct list_elem *, const struct list_elem *, void *);
+bool compare_threads_by_priority_waiter_elem (const struct list_elem *, const struct list_elem *, void *);
 
 /* Optimization barrier.
 

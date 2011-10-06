@@ -71,10 +71,6 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-//(Jim)
-bool compare_threads_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux );
-//int get_highest_priority(struct thread *);
-
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -119,7 +115,6 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
-  //printf("Threads started\n");
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -226,13 +221,6 @@ thread_create (const char *name, int priority,
 void
 thread_block (void) 
 {
-  /*printf("Blocking thread ");
-  if (thread_current() == idle_thread ) {
-    printf("Idle\n");
-  }
-  else {
-    printf("%d\n", thread_current()->tid);
-  }*/
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
@@ -240,18 +228,7 @@ thread_block (void)
   schedule ();
 }
 
-// Get the highest priority (donated or otherwise) (Jim)
-/*int get_highest_priority ( struct thread *t ) {
-  if ( list_empty(&t->donor_list) ) {
-    return t->priority;
-  }
-  else {
-    return list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem)->priority;
-    //return get_highest_priority(list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem));
-  }
-}*/
-
-// Added function to check wakeup time between threads (Jim)
+// Added function to check priority between threads. Return true is A higher than B (Jim)
 bool compare_threads_by_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
   const struct thread *a = list_entry (a_, struct thread, elem);
   const struct thread *b = list_entry (b_, struct thread, elem);
@@ -275,17 +252,11 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  // Inserted into ordered list (Jim)
   //list_push_back (&ready_list, &t->elem);
+
+  // Inserted into ordered list by priority, highest at front (Jim)
   if ( t != idle_thread ) {
-    //printf("Inserting thread %d in ready list\n", t->tid);
     list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority_elem, NULL);
-    /*struct list_elem *e;
-    printf("Current ready list:\n");
-    for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
-      struct thread *cur = list_entry(e, struct thread, elem);
-      printf("\tThread %d with priority %d\n", cur->tid, cur->priority);
-    }*/
   }
   else {
     list_push_back (&ready_list, &t->elem);
@@ -296,7 +267,6 @@ thread_unblock (struct thread *t)
 
   // Yield if threads priority is greater (Jim)
   if ( (t->priority > running_thread()->priority) && thread_current() != idle_thread ) {
-    //printf("Thread %d with priority %d is yielding to thread %d with priority %d\n", thread_current()->tid, thread_current()->priority, t->tid, t->priority);
     thread_yield();
   }
 }
@@ -367,19 +337,11 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) {
-    // Changed to ordered list (Jim)
     //list_push_back (&ready_list, &cur->elem);
-    //printf("Inserting thread in ready list (yield)\n");
+
+    // Changed to ordered list by priority, highest in front (Jim)
     list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority_elem, NULL);
-    /*printf("\nThread %d yielding with priority %d\n", cur->tid, cur->priority);
-    struct list_elem *e;
-    printf("Current ready list (yield):\n");
-    for (e = list_begin (&ready_list); e != list_end (&ready_list); e = list_next (e)) {
-      struct thread *cur = list_entry(e, struct thread, elem);
-      printf("\tThread %d with priority %d\n", cur->tid, cur->priority);
-    }*/
   }
-  //printf("Thread %d is idle\n", cur->tid);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -402,25 +364,28 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+// This function recursively update's the thread's donee chain's priority (Jim)
 void donate_nested_priority (struct thread *t) {
+  // Chain is finished if donee is NULL
   if (t->donee == NULL) {
     return;
   }
   else {
-
+    // Update donee priority
     if (!list_empty(&t->donor_list)) {
       struct thread *donor = list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem);
-      if (donor->priority > t->donee->priority) {
+      if (donor->priority > t->donee->priority) {	// Change donee priority to donor's priority if higher
         t->donee->priority = donor->priority;
       }
       else {
-        t->priority = t->old_priority;
+        t->donee->priority = t->donee->old_priority;	// Otherwise change it to original priority
       }
     }
     else {
-      t->priority = t->old_priority;
+      t->donee->priority = t->donee->old_priority;
     }
 
+    // Recursively call on donee
     donate_nested_priority(t->donee);
   }
 }
@@ -431,8 +396,10 @@ thread_set_priority (int new_priority)
 {
   struct thread *cur = thread_current();
 
+  // Set old_priority to the new priority (Jim)
   cur->old_priority = new_priority;
 
+  // Update priority to either donated priority or the new priority (depending on which is higher)
   if (!list_empty(&cur->donor_list)) {
     struct thread *donor = list_entry(list_begin(&cur->donor_list), struct thread, donor_list_elem);
     if (donor->priority > cur->old_priority) {
@@ -446,8 +413,10 @@ thread_set_priority (int new_priority)
     cur->priority = cur->old_priority;
   }
   
+  // Update nested priorities
   donate_nested_priority (cur);
 
+  // Yield if no longer highest priority thread
   if (list_size(&ready_list) != 0) {
     if (cur->priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
       thread_yield();
@@ -582,14 +551,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   
-  //Initiallize semaphore (Kevin)
+  //Initiallize sleep semaphore (Kevin)
   sema_init(&t->s,0);
-  //Initialize donor and donee list (Jim)
+  //Initialize donor list and donee (Jim)
   list_init (&t->donor_list);
-  //list_init (&t->donee_list);
   t->donee = NULL;
 
-  // Set original priority
+  // Set original priority (Jim)
   t->old_priority = priority;
 
   list_push_back (&all_list, &t->allelem);
@@ -689,9 +657,6 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
-  /*if ( next != idle_thread ) {
-    printf("\nThread %d is now running instead of %d\n", next->tid, cur->tid);
-  }*/
 }
 
 /* Returns a tid to use for a new thread. */

@@ -3,21 +3,16 @@ CIS 520 - Programming Project #1
                    
 ---- GROUP ----
 
->> Fill in the names and email addresses of your group members.
-
 Jim Groening <groening@k-state.edu>
 Jarrod Krebs <krebs@k-state.edu>
 Kevin Schwarz <kschwar8@k-state.edu>
 
 ---- PRELIMINARIES ----
 
->> If you have any preliminary comments on your submission, notes for
->> the TA, or extra credit, please give them here.
+Comments:
 
->> Please cite any offline or online sources you consulted while
->> preparing your submission, other than the Pintos documentation,
->> course text, lecture notes, and course staff.
-
+Sources: www.github.com
+	 http://gitref.org/
 
                  ALARM CLOCK
                  ===========
@@ -28,22 +23,26 @@ Kevin Schwarz <kschwar8@k-state.edu>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-static struct list wait_list;
+static struct list wait_list; // A list to keep track threads waiting on the semaphore
 
-struct thread *t = thread_current();
+struct list_elem timer_list_elem; //List element of wait list
 
-struct list_elem timer_list_elem;
+struct semaphore s;   //Semaphore used in locking threads
 
-struct semaphore s;
+int64_t wakeup_time;  //64 bit integer representing the wakeup time for the thread
 
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to your timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+	Our timer_sleep function first sets the wake up time of the current thread, then disables 		interrupts in order to insert into the wait list. After inserting, interrupts are enabled.  		Finally, the thread is blocked with a sema_down on the current thread's semaphore 's'.
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
+	To minimize time in the interrupt handler, interrupts are disabled during critical sections of 		code where a process must complete atomically.
 
+	We also have the wait list ordered by wake-up time, which enables us to only have to loop 		through the number of threads in the waitlist that need to be woken up during the timer       		interrupt. This is done by checking if the timer ticks are less than the wake-up time.
 
 ---- SYNCHRONIZATION ----
 
@@ -54,12 +53,15 @@ struct semaphore s;
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
+	Race conditions are avoided by disabling interrupts before the critical section and then 	 	enabling interrupts after the critical section is done.
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> other designs that you considered?
+	We chose the design of the ordered wait list so that the interrupt service routine would not 		have to check every thread in the wait list in order to wake up the correct threads.  We also 		chose to use a semaphore to block each thread because of the simplicity of being able to signal 	a semaphore to wake up.
 
+	Our design is superior to other designs because of the efficiency of the ordered wait list.
 
 
              PRIORITY SCHEDULING
@@ -70,6 +72,14 @@ struct semaphore s;
 >> B1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+struct list donor_list;  //List of threads that have donated their priority to "this" thread
+    
+struct list_elem donor_list_elem; //elem of donor list
+    
+struct thread *donee;    //thread that is getting the priority donated from "this" thread
+
+*****Thread Holder???*****
 
 >> B2: Explain the data structure used to track priority donation.
 

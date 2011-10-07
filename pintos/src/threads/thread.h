@@ -159,6 +159,7 @@ int thread_get_load_avg (void);
 
 // Added functions (Jim)
 bool compare_threads_by_priority_elem ( const struct list_elem *, const struct list_elem *, void * );
+bool compare_threads_by_priority_donor_elem (const struct list_elem *, const struct list_elem *, void *);
 void donate_nested_priority (struct thread *);
 
 #endif /* threads/thread.h */

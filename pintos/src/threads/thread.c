@@ -252,15 +252,11 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  //list_push_back (&ready_list, &t->elem);
+  list_push_back (&ready_list, &t->elem);
 
   // Inserted into ordered list by priority, highest at front (Jim)
-  if ( t != idle_thread ) {
-    list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority_elem, NULL);
-  }
-  else {
-    list_push_back (&ready_list, &t->elem);
-  }
+  //list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority_elem, NULL);
+
   t->status = THREAD_READY;
 
   intr_set_level (old_level);
@@ -337,10 +333,10 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) {
-    //list_push_back (&ready_list, &cur->elem);
+    list_push_back (&ready_list, &cur->elem);
 
     // Changed to ordered list by priority, highest in front (Jim)
-    list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority_elem, NULL);
+    //list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority_elem, NULL);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -366,26 +362,24 @@ thread_foreach (thread_action_func *func, void *aux)
 
 // This function recursively update's the thread's donee chain's priority (Jim)
 void donate_nested_priority (struct thread *t) {
-  // Chain is finished if donee is NULL
-  if (t->donee == NULL) {
-    return;
-  }
-  else {
-    // Update donee priority
-    if (!list_empty(&t->donor_list)) {
-      struct thread *donor = list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem);
-      if (donor->priority > t->donee->priority) {	// Change donee priority to donor's priority if higher
-        t->donee->priority = donor->priority;
-      }
-      else {
-        t->donee->priority = t->donee->old_priority;	// Otherwise change it to original priority
-      }
+
+  // Update thread's priority
+  if (!list_empty(&t->donor_list)) {
+    struct thread *donor = list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem);
+    //struct thread *donor = list_entry(list_min(&t->donor_list, compare_threads_by_priority_donor_elem, NULL), struct thread, donor_list_elem);
+    if (donor->priority > t->old_priority) {	// Change thread's priority to donor's priority if higher
+      t->priority = donor->priority;
     }
     else {
-      t->donee->priority = t->donee->old_priority;
+      t->priority = t->old_priority;	// Otherwise change it to original priority
     }
+  }
+  else {
+    t->priority = t->old_priority;
+  }
 
-    // Recursively call on donee
+  // If thread has a donee then update it's priority
+  if (t->donee != NULL) {
     donate_nested_priority(t->donee);
   }
 }
@@ -398,27 +392,14 @@ thread_set_priority (int new_priority)
 
   // Set old_priority to the new priority (Jim)
   cur->old_priority = new_priority;
-
-  // Update priority to either donated priority or the new priority (depending on which is higher)
-  if (!list_empty(&cur->donor_list)) {
-    struct thread *donor = list_entry(list_begin(&cur->donor_list), struct thread, donor_list_elem);
-    if (donor->priority > cur->old_priority) {
-      cur->priority = donor->priority;
-    }
-    else {
-      cur->priority = cur->old_priority;
-    }
-  }
-  else {
-    cur->priority = cur->old_priority;
-  }
   
   // Update nested priorities
   donate_nested_priority (cur);
 
   // Yield if no longer highest priority thread
   if (list_size(&ready_list) != 0) {
-    if (cur->priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
+    //if (cur->priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
+    if (cur->priority < list_entry(list_min(&ready_list, compare_threads_by_priority_elem, NULL), struct thread, elem)->priority) {
       thread_yield();
     }
   }
@@ -586,8 +567,12 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  else {
+    //return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    struct list_elem *e = list_min(&ready_list, compare_threads_by_priority_elem, NULL);
+    list_remove(e);
+    return list_entry (e, struct thread, elem);
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page

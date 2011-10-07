@@ -137,9 +137,13 @@ sema_up (struct semaphore *sema)
       e = list_next(e);
     }
 
+    //struct list_elem *e = list_min(&sema->waiters, compare_threads_by_priority_elem, NULL);
+
     // Remove thread with highest priority from the wait list and unblock the thread
     list_remove(&t->elem);
+    //list_remove(e);
     thread_unblock (t);
+    //thread_unblock (list_entry(e, struct thread, elem));
   }
   intr_set_level (old_level);
 }
@@ -235,14 +239,13 @@ lock_acquire (struct lock *lock)
   if (lock->holder != NULL) {		// Only donate if there is a thread already holding the lock
     // Insert every waiting thread in the lock holders donor list
     list_insert_ordered(&lock->holder->donor_list, &thread_current()->donor_list_elem, compare_threads_by_priority_donor_elem, NULL);
+    //list_push_back(&lock->holder->donor_list, &thread_current()->donor_list_elem);
 
-    // Donor with highest priority donates it's priority to the lock holder
-    struct thread *donor = list_entry(list_begin(&lock->holder->donor_list), struct thread, donor_list_elem);
-    if (donor->priority > lock->holder->old_priority) {
-      lock->holder->priority = donor->priority;
-      thread_current()->donee = lock->holder;
-      donate_nested_priority(lock->holder);
-    }
+    // The soon to be waiting thread's donee is now the lock holder
+    thread_current()->donee = lock->holder;
+
+    // Update the lock holder's priority and it's donee chain
+    donate_nested_priority(lock->holder);
   }
 
   intr_set_level (old_level);
@@ -295,39 +298,9 @@ lock_release (struct lock *lock)
       t->donee = NULL;
       list_remove(&t->donor_list_elem);
     }
-    // Update priority whether there are still donors or not
-    if (!list_empty(&lock->holder->donor_list)) {
-      struct thread *donor = list_entry(list_begin(&lock->holder->donor_list), struct thread, donor_list_elem);
-      if (donor->priority > lock->holder->old_priority) {
-        lock->holder->priority = donor->priority;
-      }
-      else {
-        lock->holder->priority = lock->holder->old_priority;
-      }
-    }
-    else {
-      lock->holder->priority = lock->holder->old_priority;
-    }
-  }
 
-  // Update priority of the lock holder's donee
-  if (lock->holder->donee !=NULL) {
-    if (!list_empty(&lock->holder->donee->donor_list)) {
-      struct thread *donor = list_entry(list_begin(&lock->holder->donee->donor_list), struct thread, donor_list_elem);
-      if (donor->priority > lock->holder->donee->old_priority) {
-        lock->holder->donee->priority = donor->priority;
-      }
-      else {
-        lock->holder->donee->priority = lock->holder->donee->old_priority;
-      }
-    }
-    else {
-      lock->holder->donee->priority = lock->holder->donee->old_priority;
-    }
-
-    // Recursively update the donor/donee chain
-    donate_nested_priority(lock->holder->donee);
-    thread_current()->donee = NULL;
+    // Update priority of donee chain
+    donate_nested_priority(lock->holder);
   }
 
   intr_set_level (old_level);
@@ -432,9 +405,13 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (!intr_context ());
   ASSERT (lock_held_by_current_thread (lock));
 
-  if (!list_empty (&cond->waiters)) 
+  if (!list_empty (&cond->waiters)) {
     sema_up (&list_entry (list_pop_front (&cond->waiters),
                           struct semaphore_elem, elem)->semaphore);
+    /*struct list_elem *e = list_min(&cond->waiters, compare_threads_by_priority_waiter_elem, NULL);
+    list_remove(e);
+    sema_up (&list_entry(e, struct semaphore_elem, elem)->semaphore);*/
+  }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by

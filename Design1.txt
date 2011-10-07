@@ -36,30 +36,41 @@ int64_t wakeup_time;  //64 bit integer representing the wakeup time for the thre
 >> A2: Briefly describe what happens in a call to your timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
-	Our timer_sleep function first sets the wake up time of the current thread, then disables 		interrupts in order to insert into the wait list. After inserting, interrupts are enabled.  		Finally, the thread is blocked with a sema_down on the current thread's semaphore 's'.
+	Our timer_sleep function first sets the wake up time of the current thread, then disables 		
+	interrupts in order to insert into the wait list. After inserting, interrupts are enabled.  		
+	Finally, the thread is blocked with a sema_down on the current thread's semaphore 's'.
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
-	To minimize time in the interrupt handler, interrupts are disabled during critical sections of 		code where a process must complete atomically.
+	To minimize time in the interrupt handler, interrupts are disabled during critical sections of
+	code where a process must complete atomically.
 
-	We also have the wait list ordered by wake-up time, which enables us to only have to loop 		through the number of threads in the waitlist that need to be woken up during the timer       		interrupt. This is done by checking if the timer ticks are less than the wake-up time.
+	We also have the wait list ordered by wake-up time, which enables us to only have to loop 	
+	through the number of threads in the waitlist that need to be woken up during the timer
+	interrupt. This is done by checking if the timer ticks are less than the wake-up time.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
-
+	
+	Race conditions are avoided by disabling interrupts before the critical section and then
+ 	enabling interrupts after the critical section is done.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
-	Race conditions are avoided by disabling interrupts before the critical section and then 	 	enabling interrupts after the critical section is done.
+	When an interrupt is called the system automatically disables interrupts until the interrupt
+	service routine is finished.
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> other designs that you considered?
-	We chose the design of the ordered wait list so that the interrupt service routine would not 		have to check every thread in the wait list in order to wake up the correct threads.  We also 		chose to use a semaphore to block each thread because of the simplicity of being able to signal 	a semaphore to wake up.
+	We chose the design of the ordered wait list so that the interrupt service routine would not
+	have to check every thread in the wait list in order to wake up the correct threads.  We also
+	chose to use a semaphore to block each thread because of the simplicity of being able to signal
+ 	a semaphore to wake up.
 
 	Our design is superior to other designs because of the efficiency of the ordered wait list.
 
@@ -79,75 +90,68 @@ struct list_elem donor_list_elem; //elem of donor list
     
 struct thread *donee;    //thread that is getting the priority donated from "this" thread
 
+int old_priority;        //keeps track of the original or undonated priority of said thread
+
 *****Thread Holder???*****
 
->> B2: Explain the data structure used to track priority donation.
 
+>> B2: Explain the data structure used to track priority donation.
+	
+	We use a donor list to keep track of threads who have donated their priority to "this" thread. 
+	And each thread has it's own donor list and donee thread pointer.  The donee pointer is used to tell the donee 
+	thread to undonate the priority.  If the donor list is empty the priority of the thread is reverted back to the old_priority.
 
 ---- ALGORITHMS ----
 
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
+	
+	We look through the semaphore waitlist and wake up the highest priority thread 
+	in the list.
 
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
 
+	First, we disable interrupts. Then, insert the thread into lock's donor_list	which 
+	contains all threads waiting on the lock. Next, we set the current thread's donee 
+	pointer to the thread that it holding the lock.  We then call our 
+	donate_nested_priority method to update the current thread's priority and recurse 
+	down the donee chain while updating priorities.  When donate_nested_priority returns
+	interrupts are then enabled.  We can then try to acquire the lock with the current thread.
+	A semaphore protects us from trying to aquire a lock that is already locked.
+
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
+
+	Interrupts are first disabled.  Then, we update priority of the lock by removing donated 
+	priority from all threads in the lock's semaphore waiting list.  
+	Then donate_nested_priority is called to recursevly update the donee chain.
+	When donate_nested_priority returns interrupts are enabled and the thread pointer
+	referencing the thread that holds the lock is set to null.  Finally the lock's semaphore is 
+	is signaled.
 
 ---- SYNCHRONIZATION ----
 
 >> B6: Describe a potential race in thread_set_priority() and explain
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
+	
+	A race could occur if the donated priority and the default thread priority changes
+	were using thread_set_priority() to set the thread's overall priority.  We fix this by 
+	using the donor list to set and get a different priority that is differnt than the 
+	threads original priority.  A lock could be used to avoid the race, but there would be
+	no way of keeping track of the old priority (priority that was not donated).
 
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
+	We chose this design because it was simpler to implement than other designs that 
+	used more linked lists to keep track of priority donation.  Our design was superior to previous 
+	designs because we had one list of donor threads and only one donee thread pointer. 
+	This design made it easier to recurse through to update the donee chain and to remove
+	donee's when the thread released a lock.  We were able to just look through donor list
+	to find highest priority and return that priority as the thread's new priority.
 
-              ADVANCED SCHEDULER [EXTRA CREDIT]
-              =================================
-
----- DATA STRUCTURES ----
-
->> C1: Copy here the declaration of each new or changed `struct' or
->> `struct' member, global or static variable, `typedef', or
->> enumeration.  Identify the purpose of each in 25 words or less.
-
----- ALGORITHMS ----
-
->> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
->> has a recent_cpu value of 0.  Fill in the table below showing the
->> scheduling decision and the priority and recent_cpu values for each
->> thread after each given number of timer ticks:
-
-timer  recent_cpu    priority   thread
-ticks   A   B   C   A   B   C   to run
------  --  --  --  --  --  --   ------
- 0
- 4
- 8
-12
-16
-20
-24
-28
-32
-36
-
->> C3: Did any ambiguities in the scheduler specification make values
->> in the table uncertain?  If so, what rule did you use to resolve
->> them?  Does this match the behavior of your scheduler?
-
->> C4: How is the way you divided the cost of scheduling between code
->> inside and outside interrupt context likely to affect performance?
-
----- RATIONALE ----
-
->> C5: Briefly critique your design, pointing out advantages and
->> disadvantages in your design choices.  If you were to have extra
->> time to work on this part of the project, how might you choose to
->> refine or improve your design?
-
+              

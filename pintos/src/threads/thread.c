@@ -232,7 +232,7 @@ thread_block (void)
 bool compare_threads_by_priority_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
   const struct thread *a = list_entry (a_, struct thread, elem);
   const struct thread *b = list_entry (b_, struct thread, elem);
-  return a->priority > b->priority;
+  return a->priority < b->priority;
 }
 
 /* Transitions a blocked thread T to the ready-to-run state.
@@ -253,9 +253,6 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
-
-  // Inserted into ordered list by priority, highest at front (Jim)
-  //list_insert_ordered(&ready_list, &t->elem, compare_threads_by_priority_elem, NULL);
 
   t->status = THREAD_READY;
 
@@ -334,9 +331,6 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) {
     list_push_back (&ready_list, &cur->elem);
-
-    // Changed to ordered list by priority, highest in front (Jim)
-    //list_insert_ordered(&ready_list, &cur->elem, compare_threads_by_priority_elem, NULL);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -360,13 +354,19 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-// This function recursively update's the thread's donee chain's priority (Jim)
+// Added function to check priority between threads, returns true is A higher than B (Jim)
+bool compare_threads_by_priority_donor_elem ( const struct list_elem *a_, const struct list_elem *b_, void *aux ) {
+  const struct thread *a = list_entry (a_, struct thread, donor_list_elem);
+  const struct thread *b = list_entry (b_, struct thread, donor_list_elem);
+  return a->priority < b->priority;
+}
+
+// This function updates the thread's priority and recursively update's the thread's donee chain's priority (Jim)
 void donate_nested_priority (struct thread *t) {
 
   // Update thread's priority
   if (!list_empty(&t->donor_list)) {
-    struct thread *donor = list_entry(list_begin(&t->donor_list), struct thread, donor_list_elem);
-    //struct thread *donor = list_entry(list_min(&t->donor_list, compare_threads_by_priority_donor_elem, NULL), struct thread, donor_list_elem);
+    struct thread *donor = list_entry(list_max(&t->donor_list, compare_threads_by_priority_donor_elem, NULL), struct thread, donor_list_elem);
     if (donor->priority > t->old_priority) {	// Change thread's priority to donor's priority if higher
       t->priority = donor->priority;
     }
@@ -398,8 +398,7 @@ thread_set_priority (int new_priority)
 
   // Yield if no longer highest priority thread
   if (list_size(&ready_list) != 0) {
-    //if (cur->priority < list_entry(list_begin(&ready_list), struct thread, elem)->priority) {
-    if (cur->priority < list_entry(list_min(&ready_list, compare_threads_by_priority_elem, NULL), struct thread, elem)->priority) {
+    if (cur->priority < list_entry(list_max(&ready_list, compare_threads_by_priority_elem, NULL), struct thread, elem)->priority) {
       thread_yield();
     }
   }
@@ -409,9 +408,7 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void) 
 {
-  // Get the highest priority (doanted or otherwise) (Jim)
-  //return get_highest_priority(thread_current());
-
+  // Get the highest priority (donated or otherwise) (Jim)
   return thread_current ()->priority;
 }
 
@@ -568,8 +565,8 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else {
-    //return list_entry (list_pop_front (&ready_list), struct thread, elem);
-    struct list_elem *e = list_min(&ready_list, compare_threads_by_priority_elem, NULL);
+    // Find the thread in the ready_list with the highest priority (Jim)
+    struct list_elem *e = list_max(&ready_list, compare_threads_by_priority_elem, NULL);
     list_remove(e);
     return list_entry (e, struct thread, elem);
   }

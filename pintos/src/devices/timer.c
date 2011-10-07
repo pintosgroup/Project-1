@@ -98,7 +98,7 @@ bool compare_threads_by_wakeup_time ( const struct list_elem *a_, const struct l
     return true;
   }
   else if ( a->wakeup_time == b->wakeup_time ) {
-    return a->priority >= b->priority;
+    return a->priority > b->priority;
   }
   else {
     return false;
@@ -120,7 +120,7 @@ timer_sleep (int64_t ticks)
 
   old_level = intr_disable ();
 
-  // Insert thread into ordered wait list
+  // Insert thread into ordered wait list (Jim)
   list_insert_ordered (&wait_list, &t->timer_list_elem, compare_threads_by_wakeup_time, NULL);
 
   intr_set_level (old_level);
@@ -210,10 +210,10 @@ timer_interrupt (struct intr_frame *args UNUSED)
   // This function has been updated to wake up the sleeping thread. (Kevin)
   struct list_elem *e = list_begin (&wait_list);
   struct thread *t = list_entry(e, struct thread, timer_list_elem);
-  // Check threads in wait list and wakeup when appriopriate
+  // Check threads in wait list and wakeup when appriopriate (Jim)
   while ( (e != list_end (&wait_list)) && (timer_ticks() >= t->wakeup_time) ) {
-    sema_up(&t->s);
     e = list_remove(e);
+    sema_up(&t->s);
     if (e != list_end (&wait_list)) {
       t = list_entry(e, struct thread, timer_list_elem);
     }

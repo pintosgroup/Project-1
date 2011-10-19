@@ -38,11 +38,70 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char *arg_copy = palloc_get_page(0);
+  if (arg_copy == NULL)
+    return TID_ERROR;
+  strlcpy (arg_copy, file_name, PGSIZE);
+
+  char *token, *save_ptr;
+  char *args[10];
+  int i = 0;
+
+  for (token = strtok_r (arg_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
+    printf ("'%s'\n", token);
+    args[i++] = token;
+  }
+
+  int *sp = PHYS_BASE;
+  int count = i;
+  int j;
+  int tot_len;
+  while ( i > 0 ) {
+    for (j = 0; j < strlen(args[i-1]); j++) {
+        push_arg(*(args[i-1]+j));
+    }
+    push_arg('\0');
+    tot_len += strlen(args[i-1])+1
+    i--;
+  }
+
+  while (tot_len%4 != 0) {
+    push_arg((char)0);
+    tot_len++;
+  }
+
+  i = count
+  push_addr((char *)0);
+  while ( i > 0 ) {
+    push_addr(args[--i];
+  }
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
+  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, args[0]);
+  if (tid == TID_ERROR) {
     palloc_free_page (fn_copy); 
+    palloc_free_page (arg_copy);
+  }
   return tid;
+}
+
+static void
+push_arg (char ARG)
+{                      \
+  asm volatile                      \
+    ("pushl %[arg]; addl $1, %%esp" \
+         [arg] "g" (ARG)            \
+       : "memory");                 \
+}
+
+static void
+push_addr (char *ADDR)
+{                      \
+  asm volatile                      \
+    ("pushl %[addr]; addl $4, %%esp" \
+         [addr] "g" (ADDR)            \
+       : "memory");                 \
 }
 
 /* A thread function that loads a user process and starts it

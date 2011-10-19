@@ -44,7 +44,7 @@ process_execute (const char *file_name)
   strlcpy (arg_copy, file_name, PGSIZE);
 
   char *token, *save_ptr;
-  char *args[10];
+  char *args[3];
   int i = 0;
 
   for (token = strtok_r (arg_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
@@ -54,27 +54,32 @@ process_execute (const char *file_name)
 
   int *sp = PHYS_BASE;
   int count = i;
-  int j;
   int tot_len;
+  char *arg_addr[3];
   while ( i > 0 ) {
-    for (j = 0; j < strlen(args[i-1]); j++) {
-        push_arg(*(args[i-1]+j));
-    }
-    push_arg('\0');
-    tot_len += strlen(args[i-1])+1
+    sp -= strlen(args[i-1]);
+    memcpy(sp, args[i-1], strlen(args[i-1])+1);
+    tot_len += strlen(args[i-1])+1;
+    arg_addr[i-1] = sp;
     i--;
   }
 
-  while (tot_len%4 != 0) {
-    push_arg((char)0);
-    tot_len++;
+  int zero = 0;
+  sp -= (4-(tot_len%4));
+  memcpy(sp, &zero, (4-(totlen%4)));
+
+  sp -= 4;
+  memcpy(sp, &zero, 4);
+  i = count;
+  while ( i > 0 ) {
+    sp -= 4;
+    memcpy(sp, arg_addr[i-1], 4);
   }
 
-  i = count
-  push_addr((char *)0);
-  while ( i > 0 ) {
-    push_addr(args[--i];
-  }
+  sp -= 4;
+  memcpy(sp, &count, 4);
+  sp -= 4;
+  memcpy(sp, &zero, 4);
 
   /* Create a new thread to execute FILE_NAME. */
   //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
@@ -84,24 +89,6 @@ process_execute (const char *file_name)
     palloc_free_page (arg_copy);
   }
   return tid;
-}
-
-static void
-push_arg (char ARG)
-{                      \
-  asm volatile                      \
-    ("pushl %[arg]; addl $1, %%esp" \
-         [arg] "g" (ARG)            \
-       : "memory");                 \
-}
-
-static void
-push_addr (char *ADDR)
-{                      \
-  asm volatile                      \
-    ("pushl %[addr]; addl $4, %%esp" \
-         [addr] "g" (ADDR)            \
-       : "memory");                 \
 }
 
 /* A thread function that loads a user process and starts it

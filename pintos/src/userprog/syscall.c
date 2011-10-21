@@ -17,27 +17,33 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
+  //printf ("system call!\n");
   int sys_num = *(int *)f->esp;
-  printf ("sys_num: %d\n", sys_num);
+  //printf ("sys_num: %d\n", sys_num);
   switch (sys_num) {
     int status;
     int fd;
     void *buffer;
     unsigned size;
     case SYS_EXIT:  // 1
-      status = *(((int *)f->esp) + 4);
+      status = *(((int *)f->esp) + 1);
       exit(status);
       break;
-    case SYS_READ:  // 8
-      fd = *(((int *)f->esp) + 4);
-      buffer = (((void *)f->esp) + 8);
-      size = *(((unsigned *)f->esp) + 12);
+    /*case SYS_READ:  // 8
+      fd = *(((int *)f->esp) + 1);
+      buffer = (((void *)f->esp) + 2);
+      size = *(((unsigned *)f->esp) + 3);
       read(fd, buffer, size);
+      break;*/
     case SYS_WRITE: // 9
-      fd = *(((int *)f->esp) + 4);
-      buffer = (((void *)f->esp) + 8);
-      size = *(((unsigned *)f->esp) + 12);
+      fd = *(((int *)f->esp) + 1);
+      //printf("fd: %d\n", fd);
+      buffer = *(((int *)f->esp) + 2);
+      //printf("buffer: 0x%x\n", buffer);
+      size = *(((unsigned *)f->esp) + 3);
+      //printf("size: %d\n", size);
+      //hex_dump(buffer, buffer, 32, true);
+      //hex_dump(f->esp, f->esp, 32, true);
       write(fd, buffer, size);
       break;
     default:

@@ -31,6 +31,8 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  char *fn, *save;
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -38,21 +40,27 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  char *arg_copy = palloc_get_page(0);
+  fn = malloc (strlen(file_name + 1));
+  if (!fn)
+    return TID_ERROR;
+  memcpy(fn, file_name, strlen(file_name) + 1);
+  file_name = strtok_r (fn," ", &save);
+
+  /*char *arg_copy = palloc_get_page(0);
   if (arg_copy == NULL)
     return TID_ERROR;
-  strlcpy (arg_copy, file_name, PGSIZE);
+  strlcpy (arg_copy, file_name, PGSIZE);*/
 
-  char *token, *save_ptr;
+  /*char *token, *save_ptr;
   char *args[3];
   int i = 0;
 
   for (token = strtok_r (arg_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
     printf ("'%s'\n", token);
     args[i++] = token;
-  }
+  }*/
 
-  int *sp = PHYS_BASE;
+  /*int *sp = PHYS_BASE;
   int count = i;
   int tot_len;
   char *arg_addr[3];
@@ -79,14 +87,15 @@ process_execute (const char *file_name)
   sp -= 4;
   memcpy(sp, &count, 4);
   sp -= 4;
-  memcpy(sp, &zero, 4);
+  memcpy(sp, &zero, 4);*/
 
   /* Create a new thread to execute FILE_NAME. */
-  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, args[0]);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  //tid = thread_create (file_name, PRI_DEFAULT, start_process, args[0]);
   if (tid == TID_ERROR) {
     palloc_free_page (fn_copy); 
-    palloc_free_page (arg_copy);
+    //palloc_free_page (arg_copy);
+    free(fn);
   }
   return tid;
 }
@@ -100,12 +109,58 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char *token, *save_ptr;
+  char *args[3];
+  int i = 0;
+
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
+    printf ("'%s'\n", token);
+    args[i++] = token;
+  }
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  //success = load (file_name, &if_.eip, &if_.esp);
+  success = load (args[0], &if_.eip, &if_.esp);
+
+  char *sp = PHYS_BASE;
+  int count = i;
+  int tot_len;
+  char *arg_addr[3];
+  while ( i > 0 ) {
+    sp -= strlen(args[i-1])+1;
+    memcpy(sp, args[i-1], strlen(args[i-1])+1);
+    tot_len += strlen(args[i-1])+1;
+    arg_addr[i-1] = sp;
+    i--;
+  }
+
+  int zero = 0;
+  sp -= (4-(tot_len%4));
+  memcpy(sp, &zero, (4-(tot_len%4)));
+
+  sp -= 4;
+  memcpy(sp, &zero, 4);
+  i = count;
+  while ( i > 0 ) {
+    sp -= 4;
+    memcpy(sp, &arg_addr[i-1], 4);
+    i--;
+  }
+
+  memcpy(sp-4, &sp, 4);
+  sp -= 4;
+  sp -= 4;
+  memcpy(sp, &count, 4);
+  sp -= 4;
+  memcpy(sp, &zero, 4);
+
+  //hex_dump(sp, sp, 32, true);
+
+  if_.esp = sp;
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -486,8 +541,8 @@ setup_stack (void **esp)
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
         // Temporary change to avoid page faulting (Jim)
-        //*esp = PHYS_BASE;
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
+        //*esp = PHYS_BASE - 12;
       }
       else
         palloc_free_page (kpage);

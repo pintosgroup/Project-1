@@ -8,9 +8,9 @@
 
 >> Fill in the names of your group members.
 
-FirstName LastName
-FirstName LastName
-FirstName LastName
+Jim Groening
+Jarrod Krebs
+Kevin Schwarz
 
 ---- PRELIMINARIES ----
 
@@ -29,6 +29,8 @@ FirstName LastName
 >> A1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+struct semaphore p_done;  //Semaphore used to syncronize wait and exit in syscalls.
 
 ---- ALGORITHMS ----
 

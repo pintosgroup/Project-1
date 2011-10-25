@@ -17,9 +17,9 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  //printf ("system call!\n");
+  printf ("system call!\n");
   int sys_num = *(int *)f->esp;
-  //printf ("sys_num: %d\n", sys_num);
+  printf ("sys_num: %d\n", sys_num);
   switch (sys_num) {
     int status;
     int fd;
@@ -56,7 +56,13 @@ syscall_handler (struct intr_frame *f UNUSED)
 static void
 exit (int status)
 {
+  printf("Semaphore up (0x%x) for thread %d\n", &thread_current()->p_done, thread_current()->tid);
+  sema_up(&thread_current()->p_done);
+  printf("Exiting thread %d\n", thread_current()->tid);
+  //thread_exit();
   process_exit();
+  printf("Returned from exit\n");
+  //thread_exit();
 }
 
 static int

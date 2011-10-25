@@ -114,7 +114,7 @@ start_process (void *file_name_)
   int i = 0;
 
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
-    printf ("'%s'\n", token);
+    //printf ("'%s'\n", token);
     args[i++] = token;
   }
 
@@ -131,6 +131,7 @@ start_process (void *file_name_)
   int tot_len;
   char *arg_addr[3];
   while ( i > 0 ) {
+  //while ( i > 1 ) {
     sp -= strlen(args[i-1])+1;
     memcpy(sp, args[i-1], strlen(args[i-1])+1);
     tot_len += strlen(args[i-1])+1;
@@ -146,10 +147,13 @@ start_process (void *file_name_)
   memcpy(sp, &zero, 4);
   i = count;
   while ( i > 0 ) {
+  //while ( i > 1 ) {
     sp -= 4;
     memcpy(sp, &arg_addr[i-1], 4);
     i--;
   }
+
+  //count--;
 
   memcpy(sp-4, &sp, 4);
   sp -= 4;
@@ -190,8 +194,22 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
   // Infinite loop for now (Jim)
-  while (1);
-  return -1;
+  //while (1) {
+    //printf("Waiting on %d\n", child_tid);
+  //}
+
+  struct thread *t = NULL;
+  while (t == NULL) {
+    printf("In while loop\n");
+    t = get_thread(child_tid);
+    //printf("Thread returned is: 0x%x\n", t);
+  }
+  printf("Semaphore down (0x%x) for thread %d\n", &t->p_done, t->tid);
+  if (t->status == THREAD_RUNNING || t->status == THREAD_READY) {
+    sema_down(&t->p_done);
+  }
+  //return -1;
+  return 0;
 }
 
 /* Free the current process's resources. */
@@ -200,6 +218,10 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  //printf("Exiting thread %d\n", cur->tid);
+
+  //sema_up(&cur->p_done);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -217,6 +239,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  //thread_exit();
 }
 
 /* Sets up the CPU for running user code in the current

@@ -101,6 +101,9 @@ struct thread
     // Semaphore for sleeping (Kevin)
     struct semaphore s;
 
+    // Sempaphore for synchronizing wait and exit in sys calls
+    struct semaphore p_done;
+
     // Added timer list element (Jim)
     struct list_elem timer_list_elem;
 
@@ -161,5 +164,6 @@ int thread_get_load_avg (void);
 bool compare_threads_by_priority_elem ( const struct list_elem *, const struct list_elem *, void * );
 bool compare_threads_by_priority_donor_elem (const struct list_elem *, const struct list_elem *, void *);
 void donate_nested_priority (struct thread *);
+struct thread * get_thread (tid_t tid);
 
 #endif /* threads/thread.h */

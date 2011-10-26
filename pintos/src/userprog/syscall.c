@@ -17,23 +17,20 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
+  void *args[3];
   // Get the system call number off the stack (Jim)
   int sys_num = *(int *)f->esp;
+  // Variables for system calls (Jim)
+  args[0] = (void *)f->esp + 4;
+  args[1] = (void *)f->esp + 8;
+  args[2] = (void *)f->esp + 12;
+
   switch (sys_num) {
-    // Variables for system calls (Jim)
-    int status;
-    int fd;
-    void *buffer;
-    unsigned size;
     case SYS_EXIT:  // 1
-      status = *(((int *)f->esp) + 1);
-      exit(status);
+      exit(*(int *)args[0]);
       break;
     case SYS_WRITE: // 9
-      fd = *(((int *)f->esp) + 1);
-      buffer = *(((int *)f->esp) + 2);
-      size = *(((unsigned *)f->esp) + 3);
-      write(fd, buffer, size);
+      write(*(int *)args[0], *(void **)args[1], *(unsigned *)args[2]);
       break;
     default:
       thread_exit();

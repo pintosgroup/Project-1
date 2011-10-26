@@ -1,0 +1,29 @@
+Copying tests/filesys/base/sm-seq-block to scratch partition...
+qemu -hda /tmp/UTLrPeyUtT.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run sm-seq-block
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Unexpected interrupt 0x24 (unknown)
+Calibrating timer...  1,676,083,200 loops/s.
+hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 4,096 sectors (2 MB), Pintos file system (21)
+hda3: 105 sectors (52 kB), Pintos scratch (22)
+filesys: using hda2
+scratch: using hda3
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'sm-seq-block' into the file system...
+Erasing ustar archive...
+Executing 'sm-seq-block':
+sys_num = 9
+(sm-seq-block) begin
+sys_num = 9
+(sm-seq-block) create "noodle"
+sys_num = 4
+
+TIMEOUT after 11 seconds of wall-clock time - load average: 0.25, 0.23, 0.27

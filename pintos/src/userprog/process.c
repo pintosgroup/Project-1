@@ -40,61 +40,20 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  // Create another copy of the arguments (Jim)
   fn = malloc (strlen(file_name + 1));
   if (!fn)
     return TID_ERROR;
   memcpy(fn, file_name, strlen(file_name) + 1);
+  // Get the file name from the arguments string (Jim)
   file_name = strtok_r (fn," ", &save);
 
-  /*char *arg_copy = palloc_get_page(0);
-  if (arg_copy == NULL)
-    return TID_ERROR;
-  strlcpy (arg_copy, file_name, PGSIZE);*/
-
-  /*char *token, *save_ptr;
-  char *args[3];
-  int i = 0;
-
-  for (token = strtok_r (arg_copy, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
-    printf ("'%s'\n", token);
-    args[i++] = token;
-  }*/
-
-  /*int *sp = PHYS_BASE;
-  int count = i;
-  int tot_len;
-  char *arg_addr[3];
-  while ( i > 0 ) {
-    sp -= strlen(args[i-1]);
-    memcpy(sp, args[i-1], strlen(args[i-1])+1);
-    tot_len += strlen(args[i-1])+1;
-    arg_addr[i-1] = sp;
-    i--;
-  }
-
-  int zero = 0;
-  sp -= (4-(tot_len%4));
-  memcpy(sp, &zero, (4-(totlen%4)));
-
-  sp -= 4;
-  memcpy(sp, &zero, 4);
-  i = count;
-  while ( i > 0 ) {
-    sp -= 4;
-    memcpy(sp, arg_addr[i-1], 4);
-  }
-
-  sp -= 4;
-  memcpy(sp, &count, 4);
-  sp -= 4;
-  memcpy(sp, &zero, 4);*/
-
   /* Create a new thread to execute FILE_NAME. */
+  // Use the first argument as the file name and pass in a copy of all the arguments (Jim)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  //tid = thread_create (file_name, PRI_DEFAULT, start_process, args[0]);
   if (tid == TID_ERROR) {
-    palloc_free_page (fn_copy); 
-    //palloc_free_page (arg_copy);
+    palloc_free_page (fn_copy);
+    // Free the copy if there is an error (Jim)
     free(fn);
   }
   return tid;
@@ -109,12 +68,13 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  // Initialize local variables (Jim)
   char *token, *save_ptr;
-  char *args[3];
+  char *args[25];	// Max length of 25 arguments
   int i = 0;
 
+  // Tokenize the arguments (Jim)
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
-    //printf ("'%s'\n", token);
     args[i++] = token;
   }
 
@@ -123,15 +83,17 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  //success = load (file_name, &if_.eip, &if_.esp);
+  // File name is the first argument (Jim)
   success = load (args[0], &if_.eip, &if_.esp);
 
+  // Set up the stack with the arguments (Jim)
   char *sp = PHYS_BASE;
   int count = i;
   int tot_len;
-  char *arg_addr[3];
+  char *arg_addr[25];
+
+  //Push each argument onto the stack in reverse order (Jim)
   while ( i > 0 ) {
-  //while ( i > 1 ) {
     sp -= strlen(args[i-1])+1;
     memcpy(sp, args[i-1], strlen(args[i-1])+1);
     tot_len += strlen(args[i-1])+1;
@@ -139,31 +101,34 @@ start_process (void *file_name_)
     i--;
   }
 
+  // Word align (Jim)
   int zero = 0;
   sp -= (4-(tot_len%4));
   memcpy(sp, &zero, (4-(tot_len%4)));
 
+  // Copy a null pointer for the last argument (Jim)
   sp -= 4;
   memcpy(sp, &zero, 4);
   i = count;
+
+  // Copy in the addresses of each argument (Jim)
   while ( i > 0 ) {
-  //while ( i > 1 ) {
     sp -= 4;
     memcpy(sp, &arg_addr[i-1], 4);
     i--;
   }
 
-  //count--;
-
+  // Copy in the address of the address of the first argument (Jim)
   memcpy(sp-4, &sp, 4);
   sp -= 4;
+  // Copy in argc (Jim)
   sp -= 4;
   memcpy(sp, &count, 4);
+  // Copy in the return address (Jim)
   sp -= 4;
   memcpy(sp, &zero, 4);
 
-  //hex_dump(sp, sp, 32, true);
-
+  // Finally set the frame's stack pointer to the correct position (Jim)
   if_.esp = sp;
 
   /* If load failed, quit. */
@@ -193,22 +158,15 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  // Infinite loop for now (Jim)
-  //while (1) {
-    //printf("Waiting on %d\n", child_tid);
-  //}
-
+  // Get a reference to the child thread (Jim)
   struct thread *t = NULL;
   while (t == NULL) {
-    printf("In while loop\n");
     t = get_thread(child_tid);
-    //printf("Thread returned is: 0x%x\n", t);
   }
-  printf("Semaphore down (0x%x) for thread %d\n", &t->p_done, t->tid);
+  // If the thread is running then wait for it to finish (Jim)
   if (t->status == THREAD_RUNNING || t->status == THREAD_READY) {
     sema_down(&t->p_done);
   }
-  //return -1;
   return 0;
 }
 
@@ -218,10 +176,6 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
-  //printf("Exiting thread %d\n", cur->tid);
-
-  //sema_up(&cur->p_done);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -239,8 +193,6 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-
-  //thread_exit();
 }
 
 /* Sets up the CPU for running user code in the current

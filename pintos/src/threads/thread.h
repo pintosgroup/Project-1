@@ -101,7 +101,7 @@ struct thread
     // Semaphore for sleeping (Kevin)
     struct semaphore s;
 
-    // Sempaphore for synchronizing wait and exit in sys calls
+    // Semaphore for synchronizing wait and exit in sys calls
     struct semaphore p_done;
 
     // Added timer list element (Jim)

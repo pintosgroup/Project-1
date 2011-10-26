@@ -17,10 +17,10 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
+  // Get the system call number off the stack (Jim)
   int sys_num = *(int *)f->esp;
-  printf ("sys_num: %d\n", sys_num);
   switch (sys_num) {
+    // Variables for system calls (Jim)
     int status;
     int fd;
     void *buffer;
@@ -29,45 +29,32 @@ syscall_handler (struct intr_frame *f UNUSED)
       status = *(((int *)f->esp) + 1);
       exit(status);
       break;
-    /*case SYS_READ:  // 8
-      fd = *(((int *)f->esp) + 1);
-      buffer = (((void *)f->esp) + 2);
-      size = *(((unsigned *)f->esp) + 3);
-      read(fd, buffer, size);
-      break;*/
     case SYS_WRITE: // 9
       fd = *(((int *)f->esp) + 1);
-      //printf("fd: %d\n", fd);
       buffer = *(((int *)f->esp) + 2);
-      //printf("buffer: 0x%x\n", buffer);
       size = *(((unsigned *)f->esp) + 3);
-      //printf("size: %d\n", size);
-      //hex_dump(buffer, buffer, 32, true);
-      //hex_dump(f->esp, f->esp, 32, true);
       write(fd, buffer, size);
       break;
     default:
       thread_exit();
       break;
   }
-  //thread_exit ();
 }
 
 static void
 exit (int status)
 {
-  printf("Semaphore up (0x%x) for thread %d\n", &thread_current()->p_done, thread_current()->tid);
+  // Singal parent to continue (Jim)
   sema_up(&thread_current()->p_done);
-  printf("Exiting thread %d\n", thread_current()->tid);
-  //thread_exit();
-  process_exit();
-  printf("Returned from exit\n");
-  //thread_exit();
+  // Print exit information and quit (Jim)
+  printf("%s: exit(%d)\n", thread_current()->name, status);
+  thread_exit();
 }
 
 static int
 write (int fd, const void *buffer, unsigned size)
 {
+  // If writing to console use putbuf (Jim)
   if (fd == 1) {
     putbuf(buffer, size);
   }
@@ -75,11 +62,3 @@ write (int fd, const void *buffer, unsigned size)
   return 0;
 }
 
-int read (int fd, void *buffer, unsigned size)
-{
-  if (fd == 0) {
-    input_getc();
-  }
-
-  return 0;
-}

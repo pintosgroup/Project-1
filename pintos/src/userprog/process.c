@@ -31,7 +31,12 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
-  char *fn, *save;
+  char *save;
+  struct exec_info exec;
+
+  // Set file name and initialize wait semaphore (Jim)
+  exec.file_name = file_name;
+  sema_init (&exec.load_done, 0);
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -40,21 +45,18 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  // Create another copy of the arguments (Jim)
-  fn = malloc (strlen(file_name + 1));
-  if (!fn)
-    return TID_ERROR;
-  memcpy(fn, file_name, strlen(file_name) + 1);
-  // Get the file name from the arguments string (Jim)
-  file_name = strtok_r (fn," ", &save);
+  // Get the filename from the copy (Jim)
+  strtok_r (fn_copy, " ", &save);
 
   /* Create a new thread to execute FILE_NAME. */
   // Use the first argument as the file name and pass in a copy of all the arguments (Jim)
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (fn_copy, PRI_DEFAULT, start_process, &exec);
   if (tid == TID_ERROR) {
     palloc_free_page (fn_copy);
-    // Free the copy if there is an error (Jim)
-    free(fn);
+  }
+  else {
+    // Wait for load to be done before continuing (Jim)
+    sema_down (&exec.load_done);
   }
   return tid;
 }
@@ -62,9 +64,9 @@ process_execute (const char *file_name)
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *exec_)
 {
-  char *file_name = file_name_;
+  struct exec_info *exec = exec_;
   struct intr_frame if_;
   bool success;
 
@@ -74,7 +76,7 @@ start_process (void *file_name_)
   int i = 0;
 
   // Tokenize the arguments (Jim)
-  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
+  for (token = strtok_r (exec->file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
     args[i++] = token;
   }
 
@@ -132,7 +134,11 @@ start_process (void *file_name_)
   if_.esp = sp;
 
   /* If load failed, quit. */
-  palloc_free_page (file_name);
+  //palloc_free_page (exec->file_name);
+
+  // Set success and let waiter know we're done with load (Jim)
+  exec->success = success;
+  sema_up (&exec->load_done);
   if (!success) 
     thread_exit ();
 
@@ -160,12 +166,13 @@ process_wait (tid_t child_tid UNUSED)
 {
   // Get a reference to the child thread (Jim)
   struct thread *t = NULL;
-  while (t == NULL) {
-    t = get_thread(child_tid);
-  }
+  t = get_thread(child_tid);
+
   // If the thread is running then wait for it to finish (Jim)
-  if (t->status == THREAD_RUNNING || t->status == THREAD_READY) {
-    sema_down(&t->p_done);
+  if ( t != NULL) {
+    if (t->status == THREAD_RUNNING || t->status == THREAD_READY || t->status == THREAD_BLOCKED) {
+      sema_down(&t->p_done);
+    }
   }
   return 0;
 }

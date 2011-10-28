@@ -55,6 +55,14 @@ struct semaphore p_done;  //Semaphore used to syncronize wait and exit in syscal
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct file_descriptor    //syscall.c
+    list_elem elem
+    file * file
+    int handle
+    
+int next_handle	          //thread.c
+struct fd_list            //thread.c
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?

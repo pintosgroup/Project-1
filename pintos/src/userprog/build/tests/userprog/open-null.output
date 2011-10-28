@@ -1,13 +1,12 @@
 Copying tests/userprog/open-null to scratch partition...
-qemu -hda /tmp/6yavXDMi6m.dsk -m 4 -net none -nographic -monitor null
+qemu -hda /tmp/KjGeDKRZXh.dsk -m 4 -net none -nographic -monitor null
 PiLo hda1
 Loading.........
 Kernel command line: -q -f extract run open-null
 Pintos booting with 4,096 kB RAM...
 383 pages available in kernel pool.
 383 pages available in user pool.
-Unexpected interrupt 0x24 (unknown)
-Calibrating timer...  1,676,083,200 loops/s.
+Calibrating timer...  209,510,400 loops/s.
 hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
 hda1: 147 sectors (73 kB), Pintos OS kernel (20)
 hda2: 4,096 sectors (2 MB), Pintos file system (21)
@@ -20,8 +19,15 @@ Extracting ustar archive from scratch device into file system...
 Putting 'open-null' into the file system...
 Erasing ustar archive...
 Executing 'open-null':
-sys_num = 9
 (open-null) begin
-sys_num = 6
-
-TIMEOUT after 11 seconds of wall-clock time - load average: 0.60, 0.37, 0.24
+(open-null) end
+open-null: exit(0)
+Execution of 'open-null' complete.
+Timer: 56 ticks
+Thread: 30 idle ticks, 25 kernel ticks, 1 user ticks
+hda2 (filesys): 80 reads, 206 writes
+hda3 (scratch): 100 reads, 2 writes
+Console: 886 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...

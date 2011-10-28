@@ -183,6 +183,7 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+  //printf("Creating thread %s: %d\n", name, tid);
 
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 
@@ -365,13 +366,19 @@ bool compare_threads_by_priority_donor_elem ( const struct list_elem *a_, const 
 struct thread *
 get_thread(tid_t tid) {
   struct list_elem *e;
+  struct thread *t;
 
-  // Loop through each thread and return when thread found (Jim)
-  for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next(e)) {
-    struct thread *t = list_entry (e, struct thread, allelem);
-    if (t->tid == tid) {
-      return t;
+  if (!list_empty(&all_list)) {
+    // Loop through each thread and return when thread found (Jim)
+    for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next(e)) {
+      t = list_entry (e, struct thread, allelem);
+      if (t->tid == tid) {
+        return t;
+      }
     }
+  }
+  else {
+    return NULL;
   }
 }
 

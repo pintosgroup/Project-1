@@ -97,7 +97,8 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
-  initial_thread->tid = allocate_tid ();
+  initial_thread->tid = allocate_tid (); 
+  
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -548,6 +549,12 @@ init_thread (struct thread *t, const char *name, int priority)
   //Initialize donor list and donee (Jim)
   list_init (&t->donor_list);
   t->donee = NULL;
+
+  //initialize file descriptor list 
+  list_init(&t->fd_list);
+  
+  //init next handle to be assigned to a file
+  int next_handle = 0;
 
   // Set original priority (Jim)
   t->old_priority = priority;

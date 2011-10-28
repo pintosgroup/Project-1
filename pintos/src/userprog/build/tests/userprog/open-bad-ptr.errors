@@ -1,2 +1,0 @@
-open /dev/kvm: Permission denied
-Could not initialize KVM, will disable KVM support

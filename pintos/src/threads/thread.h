@@ -122,12 +122,6 @@ struct thread
 
     // Added for sleep function (Jim)
     int64_t wakeup_time;
-
-    //keep track of next value for a new handle
-    int next_handle;
-    
-    //list of file descriptors
-    struct list fd_list;    
   };
 
 /* If false (default), use round-robin scheduler.

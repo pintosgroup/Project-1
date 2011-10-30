@@ -1,0 +1,87 @@
+Copying tests/userprog/args-many to scratch partition...
+qemu -hda /tmp/7oxamS7lkC.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run 'args-many a b c d e f g h i j k l m n o p q r s t u v'
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Unexpected interrupt 0x24 (unknown)
+Calibrating timer...  1,676,083,200 loops/s.
+hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 4,096 sectors (2 MB), Pintos file system (21)
+hda3: 100 sectors (50 kB), Pintos scratch (22)
+filesys: using hda2
+scratch: using hda3
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'args-many' into the file system...
+Erasing ustar archive...
+Executing 'args-many a b c d e f g h i j k l m n o p q r s t u v':
+sys_num = 9
+(args) begin
+sys_num = 9
+(args) argc = 23
+sys_num = 9
+(args) argv[0] = 'args-many'
+sys_num = 9
+(args) argv[1] = 'a'
+sys_num = 9
+(args) argv[2] = 'b'
+sys_num = 9
+(args) argv[3] = 'c'
+sys_num = 9
+(args) argv[4] = 'd'
+sys_num = 9
+(args) argv[5] = 'e'
+sys_num = 9
+(args) argv[6] = 'f'
+sys_num = 9
+(args) argv[7] = 'g'
+sys_num = 9
+(args) argv[8] = 'h'
+sys_num = 9
+(args) argv[9] = 'i'
+sys_num = 9
+(args) argv[10] = 'j'
+sys_num = 9
+(args) argv[11] = 'k'
+sys_num = 9
+(args) argv[12] = 'l'
+sys_num = 9
+(args) argv[13] = 'm'
+sys_num = 9
+(args) argv[14] = 'n'
+sys_num = 9
+(args) argv[15] = 'o'
+sys_num = 9
+(args) argv[16] = 'p'
+sys_num = 9
+(args) argv[17] = 'q'
+sys_num = 9
+(args) argv[18] = 'r'
+sys_num = 9
+(args) argv[19] = 's'
+sys_num = 9
+(args) argv[20] = 't'
+sys_num = 9
+(args) argv[21] = 'u'
+sys_num = 9
+(args) argv[22] = 'v'
+sys_num = 9
+(args) argv[23] = null
+sys_num = 9
+(args) end
+sys_num = 1
+args-many: exit(0)
+Execution of 'args-many a b c d e f g h i j k l m n o p q r s t u v' complete.
+Timer: 373 ticks
+Thread: 30 idle ticks, 253 kernel ticks, 91 user ticks
+hda2 (filesys): 63 reads, 204 writes
+hda3 (scratch): 99 reads, 2 writes
+Console: 1930 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...

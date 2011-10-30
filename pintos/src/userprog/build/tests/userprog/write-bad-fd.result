@@ -1,0 +1,39 @@
+FAIL
+Test output failed to match any acceptable form.
+
+Acceptable output:
+  (write-bad-fd) begin
+  (write-bad-fd) end
+  write-bad-fd: exit(0)
+Differences in `diff -u' format:
++ sys_num = 9
+  (write-bad-fd) begin
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
+  (write-bad-fd) end
++ sys_num = 1
+  write-bad-fd: exit(0)
+Acceptable output:
+  (write-bad-fd) begin
+  write-bad-fd: exit(-1)
+Differences in `diff -u' format:
++ sys_num = 9
+  (write-bad-fd) begin
+- write-bad-fd: exit(-1)
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ sys_num = 9
++ (write-bad-fd) end
++ sys_num = 1
++ write-bad-fd: exit(0)

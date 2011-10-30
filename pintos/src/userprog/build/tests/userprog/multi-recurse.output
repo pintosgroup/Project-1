@@ -1,0 +1,53 @@
+Copying tests/userprog/multi-recurse to scratch partition...
+qemu -hda /tmp/B8tbhxAa4E.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run 'multi-recurse 15'
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Unexpected interrupt 0x24 (unknown)
+Calibrating timer...  1,676,083,200 loops/s.
+hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 4,096 sectors (2 MB), Pintos file system (21)
+hda3: 112 sectors (56 kB), Pintos scratch (22)
+filesys: using hda2
+scratch: using hda3
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'multi-recurse' into the file system...
+Erasing ustar archive...
+Executing 'multi-recurse 15':
+Page fault at 0xccccccd0: not present error writing page in kernel context.
+Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc0028a07
+ cr2=ccccccd0 error=00000002
+ eax=c010706c ebx=c010706c ecx=cccccccc edx=c010706c
+ esi=c0033a40 edi=c0107000 esp=c0033b7c ebp=c010ad10
+ cs=0008 ds=0010 es=0010 ss=3a58
+Kernel PANIC at ../../userprog/exception.c:100 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0xc0028909 0xc002bb78 0xc002bc20 0xc0021b86 0xc0021cc3 0xc0028a07 0xc002908e 0xc0023757 0xc002ccb5 0xc002c0cf 0xc002aad4 0xc0021393.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Kernel PANIC recursion at ../../threads/synch.c:209 in lock_acquire().
+Page fault at 0xcccccce0: not present error reading page in kernel context.
+Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc002cd9f
+ cr2=cccccce0 error=00000000
+ eax=cccccccc ebx=c010704c ecx=00000000 edx=c010aa53
+ esi=c003054d edi=c010aa5c esp=c010aa8c ebp=c010a9b4
+ cs=0008 ds=0010 es=0010 ss=0994
+Page fault at 0xccccccd8: not present error reading page in kernel context.
+Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc002d1c7
+ cr2=ccccccd8 error=00000000
+ eax=cccccccc ebx=cccccccc ecx=00000000 edx=c010a837
+ esi=c003054d edi=c010a840 esp=00000000 ebp=c010a7c8
+ cs=0008 ds=0010 es=0010 ss=0000
+Page fault at 0xccccccd8: not present error reading page in kernel context.
+Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc002d1c7
+ cr2=ccccccd8 error=00000000
+ eax=cccccccc ebx=cccccccc ecx=00000000 edx=c010a65b
+ esi=c003054d edi=c010a664 esp=c0033e00 ebp=c010a5ec
+ cs=0008 ds=0010 es=0010 ss=a608
+PSimulation terminated due to kernel panic.

@@ -128,6 +128,9 @@ struct thread
     
     //list of file descriptors
     struct list fd_list;
+
+    // exit status of the thread
+    int exit_status;
   };
 
 /* If false (default), use round-robin scheduler.

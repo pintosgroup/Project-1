@@ -573,6 +573,9 @@ init_thread (struct thread *t, const char *name, int priority)
   //init next handle to be assigned to a file
   t->next_handle = 2;
 
+  // Initialize exit status to -1
+  t->exit_status = -1;
+
   list_push_back (&all_list, &t->allelem);
 }
 

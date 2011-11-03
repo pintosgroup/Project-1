@@ -9,7 +9,7 @@
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/palloc.h"
-#include "pagedir.h"
+#include "userprog/pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 static char * copy_in_string (const char *);
@@ -18,6 +18,8 @@ static void halt (void);
 //static void exit (int status);
 static pid_t exec (const char *);
 static int wait (pid_t pid);
+static bool create(const char *file, unsigned initial_size);
+static bool remove(const char *file);
 static int open (const char * ufile);
 static int write (int fd, const void *, unsigned size);
 
@@ -65,6 +67,12 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_WAIT:  // 3
       f->eax = wait(*(pid_t *)args[0]);
+      break;
+    case SYS_CREATE: //4
+      f->eax = create(*(char **)args[0], *(unsigned *)args[1]);
+      break;
+    case SYS_REMOVE: //5
+      remove(*(char **)args[0]);
       break;
     case SYS_OPEN:  //6
       f->eax = open(*(char **) args[0]);
@@ -120,6 +128,7 @@ void
 exit (int status)
 {
   // Signal parent to continue (Jim)
+  thread_current()->exit_status = status;
   sema_up(&thread_current()->p_done);
   // Print exit information and quit (Jim)
   printf("%s: exit(%d)\n", thread_current()->name, status);
@@ -147,6 +156,51 @@ static int
 wait (pid_t pid)
 {
   return process_wait(pid);
+}
+
+static bool
+create(const char *file, unsigned initial_size)
+{
+  //printf("create is called\n");
+  bool returnValue = false;
+  if (file != NULL){
+    char *kfile = copy_in_string (file);\
+  
+    if (kfile == NULL){
+      //printf("thread is exiting because kfile is null.\n");
+      thread_exit();   
+    }
+    else{
+      //lock the file system before calling create.
+      lock_acquire(&fs_lock);
+      returnValue = filesys_create(kfile, initial_size);
+      lock_release(&fs_lock);
+      return returnValue;
+    }
+    palloc_free_page (kfile);
+  }else{
+    printf("exiting becaue file is NULL.");
+    thread_exit();
+    //return returnValue;
+  }
+}
+
+static bool
+remove(const char *file)
+{
+  bool returnValue = false;
+  if (file == NULL)
+  {
+    thread_exit();
+  }
+  else
+  {
+    //lock the file system before remove.
+    lock_acquire(&fs_lock);
+    returnValue = filesys_remove(file);
+    lock_release(&fs_lock);
+    return returnValue;
+  }
 }
 
 static int

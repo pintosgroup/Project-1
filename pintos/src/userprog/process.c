@@ -182,8 +182,9 @@ process_wait (tid_t child_tid UNUSED)
       //printf("Thread %d waiting on thread %d\n", thread_current()->tid, t->tid);
       sema_down(&t->p_done);
     }
+    return t->exit_status;
   }
-  return 0;
+  return -1;
 }
 
 /* Free the current process's resources. */

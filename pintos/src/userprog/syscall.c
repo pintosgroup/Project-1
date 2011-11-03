@@ -5,9 +5,14 @@
 #include "threads/thread.h"
 #include "threads/init.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
+#include "threads/palloc.h"
 
 static void syscall_handler (struct intr_frame *);
 static char * copy_in_string (const char *);
+static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 static void halt (void);
 static void exit (int status);
 static pid_t exec (const char *);

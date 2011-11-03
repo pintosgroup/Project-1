@@ -12,12 +12,26 @@ static void halt (void);
 static void exit (int status);
 static pid_t exec (const char *);
 static int wait (pid_t pid);
+static int open (const char * ufile);
 static int write (int fd, const void *, unsigned size);
+
+//filesystem lock
+struct lock fs_lock;
+
+//structure that describes file
+struct file_descriptor
+{
+   struct list_elem elem; //list elem
+   struct file *file; //file name
+   //struct dir  *dir;  //file directory
+   int handle;
+};
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&fs_lock);
 }
 
 static void
@@ -44,6 +58,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_WAIT:  // 3
       f->eax = wait(*(pid_t *)args[0]);
+      break;
+    case SYS_OPEN:  //6
+      f->eax = open(*(char **) args[0]);
       break;
     case SYS_WRITE: // 9
       f->eax = write(*(int *)args[0], *(void **)args[1], *(unsigned *)args[2]);
@@ -102,11 +119,44 @@ wait (pid_t pid)
 }
 
 static int
+open(const char* ufile)
+{
+  char *kfile = copy_in_string (ufile);
+  struct file_descriptor *fd;
+  int handle = -1;
+
+  fd = malloc(sizeof *fd);
+  if (fd != NULL)
+  {
+      lock_acquire (&fs_lock);
+      fd->file = filesys_open (kfile);
+      //printf("File:  %s",fd->file);
+      if (fd->file != NULL)
+      {
+          struct thread *cur = thread_current ();
+          printf("Handle: %d\n", cur->next_handle);
+          handle = fd->handle = cur->next_handle++;
+          list_push_front (&cur->fd_list, &fd->elem);
+      }
+      else
+      {
+          free (fd);
+      }
+      lock_release (&fs_lock);
+  }
+
+  palloc_free_page (kfile);
+  return handle;
+}
+
+static int
 write (int fd, const void *buffer, unsigned size)
 {
+
+  char *kbuffer = copy_in_string (buffer);
   // If writing to console use putbuf (Jim)
   if (fd == 1) {
-    putbuf(buffer, size);
+    putbuf(kbuffer, size);
   }
 
   return 0;

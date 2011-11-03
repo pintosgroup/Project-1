@@ -561,7 +561,12 @@ init_thread (struct thread *t, const char *name, int priority)
 
   // Initialize p_done semaphore (Jim)
   sema_init(&t->p_done,0);
-  //printf("semaphore p_done initialized for thread %d\n", t->tid);
+
+  //initialize file descriptor list 
+  list_init(&t->fd_list);
+  
+  //init next handle to be assigned to a file
+  int next_handle = 2;
 
   list_push_back (&all_list, &t->allelem);
 }

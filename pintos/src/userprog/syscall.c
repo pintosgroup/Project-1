@@ -71,7 +71,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   }
 }
 
-static char *
+/*static char *
 copy_in_string (const char *us)
 {
   char *ks;
@@ -87,6 +87,38 @@ copy_in_string (const char *us)
   }
   ks[PGSIZE - 1] = '\0';
   return ks;
+}*/
+
+static char*
+copy_in_string (const char *us)
+{
+  char *ks;
+  size_t length;
+  ks = palloc_get_page (PAL_ASSERT | PAL_ZERO);
+  if (ks == NULL)
+      thread_exit ();
+  for (length = 0; length < PGSIZE; length++)
+  {
+      if (us >= (char *) PHYS_BASE || !get_user (ks + length, us++))
+      {
+          palloc_free_page (ks);
+          thread_exit ();
+      }
+      if (ks[length] == '\0')
+          return ks;
+  }
+  ks[PGSIZE - 1] = '\0';
+  return ks;
+}
+
+
+static inline bool
+get_user (uint8_t *dst, const uint8_t *usrc)
+{
+  int eax;
+  asm ("movl $1f, %%eax; movb %2, %%al; movb %%al, %0; 1:"
+       : "=m" (*dst), "=&a" (eax) : "m" (*usrc));
+  return eax != 0;
 }
 
 static void

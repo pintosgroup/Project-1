@@ -313,6 +313,7 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
+  //printf("Removing thread %d from the all list\n", thread_current()->tid);
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
   schedule ();
@@ -372,12 +373,16 @@ get_thread(tid_t tid) {
     // Loop through each thread and return when thread found (Jim)
     for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next(e)) {
       t = list_entry (e, struct thread, allelem);
+      //printf("Thread id in all list: %d\n", t->tid);
       if (t->tid == tid) {
+        //printf("Thread %d has been found!", t->tid);
         return t;
       }
     }
+    return NULL;
   }
   else {
+    //printf("Returning NULL for get_thread()\n");
     return NULL;
   }
 }
@@ -566,7 +571,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->fd_list);
   
   //init next handle to be assigned to a file
-  int next_handle = 2;
+  t->next_handle = 2;
 
   list_push_back (&all_list, &t->allelem);
 }

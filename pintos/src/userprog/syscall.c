@@ -9,12 +9,13 @@
 #include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/palloc.h"
+#include "pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 static char * copy_in_string (const char *);
 static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 static void halt (void);
-static void exit (int status);
+//static void exit (int status);
 static pid_t exec (const char *);
 static int wait (pid_t pid);
 static int open (const char * ufile);
@@ -59,6 +60,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       exit(*(int *)args[0]);
       break;
     case SYS_EXEC:  // 2
+      //printf("Calling exec with arg: 0x%x\n", (int)*(char **)args[0]);
       f->eax = exec(*(char **)args[0]);
       break;
     case SYS_WAIT:  // 3
@@ -75,24 +77,6 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
   }
 }
-
-/*static char *
-copy_in_string (const char *us)
-{
-  char *ks;
-  size_t length;
-  ks = palloc_get_page (0);
-  if (ks == NULL)
-    thread_exit();
-  for (length = 0; length < PGSIZE; length++)
-  {
-    ks[length] = us[length];
-    if (ks[length] == '\0')
-      return ks;
-  }
-  ks[PGSIZE - 1] = '\0';
-  return ks;
-}*/
 
 static char*
 copy_in_string (const char *us)
@@ -132,7 +116,7 @@ halt (void)
   shutdown_power_off();
 }
 
-static void
+void
 exit (int status)
 {
   // Signal parent to continue (Jim)
@@ -145,8 +129,18 @@ exit (int status)
 static pid_t
 exec (const char *cmd_line)
 {
+  pid_t ret_val;
+
+  //printf("Entering exec!\n");
+  if ((unsigned)cmd_line > PHYS_BASE) {
+    //printf("Bad pointer!\n");
+    return -1;
+  }
   char *kcmd_line = copy_in_string (cmd_line);
-  return process_execute(kcmd_line);
+  lock_acquire (&fs_lock);
+  ret_val =  process_execute(kcmd_line);
+  lock_release (&fs_lock);
+  return ret_val;
 }
 
 static int
@@ -171,7 +165,7 @@ open(const char* ufile)
       if (fd->file != NULL)
       {
           struct thread *cur = thread_current ();
-          printf("Handle: %d\n", cur->next_handle);
+          //printf("Handle: %d\n", cur->next_handle);
           handle = fd->handle = cur->next_handle++;
           list_push_front (&cur->fd_list, &fd->elem);
       }

@@ -58,7 +58,12 @@ process_execute (const char *file_name)
     // Wait for load to be done before continuing (Jim)
     sema_down (&exec.load_done);
   }
-  return tid;
+  if (exec.success) {
+    return tid;
+  }
+  else {
+    return -1;
+  }
 }
 
 /* A thread function that loads a user process and starts it
@@ -87,6 +92,8 @@ start_process (void *exec_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   // File name is the first argument (Jim)
   success = load (args[0], &if_.eip, &if_.esp);
+  if (!success)
+    goto done;
 
   // Set up the stack with the arguments (Jim)
   char *sp = PHYS_BASE;
@@ -137,6 +144,7 @@ start_process (void *exec_)
   //palloc_free_page (exec->file_name);
 
   // Set success and let waiter know we're done with load (Jim)
+  done:
   exec->success = success;
   sema_up (&exec->load_done);
   if (!success) 
@@ -171,6 +179,7 @@ process_wait (tid_t child_tid UNUSED)
   // If the thread is running then wait for it to finish (Jim)
   if ( t != NULL) {
     if (t->status == THREAD_RUNNING || t->status == THREAD_READY || t->status == THREAD_BLOCKED) {
+      //printf("Thread %d waiting on thread %d\n", thread_current()->tid, t->tid);
       sema_down(&t->p_done);
     }
   }

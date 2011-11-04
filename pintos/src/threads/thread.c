@@ -387,6 +387,26 @@ get_thread(tid_t tid) {
   }
 }
 
+struct file_descriptor *
+get_fd(int fd) {
+  struct list_elem *e;
+  struct file_descriptor *file_d;
+  struct thread *cur = thread_current();
+
+  if (!list_empty(&cur->fd_list)) {
+    for (e = list_begin (&cur->fd_list); e != list_end (&cur->fd_list); e = list_next(e)) {
+      file_d = list_entry (e, struct file_descriptor, elem);
+      if (file_d->handle == fd) {
+        return file_d;
+      }
+    }
+    return NULL;
+  }
+  else {
+    return NULL;
+  }
+}
+
 // This function updates the thread's priority and recursively update's the thread's donee chain's priority (Jim)
 void donate_nested_priority (struct thread *t) {
 

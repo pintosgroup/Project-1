@@ -15,25 +15,16 @@ static void syscall_handler (struct intr_frame *);
 static char * copy_in_string (const char *);
 static inline bool get_user (uint8_t *dst, const uint8_t *usrc);
 static void halt (void);
-//static void exit (int status);
 static pid_t exec (const char *);
 static int wait (pid_t pid);
 static bool create(const char *file, unsigned initial_size);
 static bool remove(const char *file);
 static int open (const char * ufile);
+static int read (int fd, void *buffer, unsigned size);
 static int write (int fd, const void *, unsigned size);
 
 //filesystem lock
 struct lock fs_lock;
-
-//structure that describes file
-struct file_descriptor
-{
-   struct list_elem elem; //list elem
-   struct file *file; //file name
-   //struct dir  *dir;  //file directory
-   int handle;
-};
 
 void
 syscall_init (void) 
@@ -72,7 +63,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->eax = create(*(char **)args[0], *(unsigned *)args[1]);
       break;
     case SYS_REMOVE: //5
-      remove(*(char **)args[0]);
+      f->eax = remove(*(char **)args[0]);
       break;
     case SYS_OPEN:  //6
       f->eax = open(*(char **) args[0]);
@@ -161,46 +152,47 @@ wait (pid_t pid)
 static bool
 create(const char *file, unsigned initial_size)
 {
-  //printf("create is called\n");
   bool returnValue = false;
   if (file != NULL){
     char *kfile = copy_in_string (file);\
   
     if (kfile == NULL){
-      //printf("thread is exiting because kfile is null.\n");
-      thread_exit();   
+      exit(-1);   
     }
     else{
       //lock the file system before calling create.
       lock_acquire(&fs_lock);
       returnValue = filesys_create(kfile, initial_size);
       lock_release(&fs_lock);
-      return returnValue;
     }
     palloc_free_page (kfile);
   }else{
     printf("exiting becaue file is NULL.");
-    thread_exit();
-    //return returnValue;
+    exit(-1);
   }
+  return returnValue;
 }
 
 static bool
 remove(const char *file)
 {
   bool returnValue = false;
-  if (file == NULL)
-  {
-    thread_exit();
+  if (file != NULL){
+    char *kfile = copy_in_string (file);
+    if (kfile == NULL){
+      exit(-1);   
+    }
+    else{
+      //lock the file system before calling create. (Kevin)
+      lock_acquire(&fs_lock);
+      returnValue = filesys_remove(kfile);
+      lock_release(&fs_lock);
+    }
+    palloc_free_page (kfile);
+  }else{
+    exit(-1);
   }
-  else
-  {
-    //lock the file system before remove.
-    lock_acquire(&fs_lock);
-    returnValue = filesys_remove(file);
-    lock_release(&fs_lock);
-    return returnValue;
-  }
+  return returnValue;
 }
 
 static int
@@ -237,13 +229,23 @@ open(const char* ufile)
 static int
 write (int fd, const void *buffer, unsigned size)
 {
+  int ret_val = 0;
 
   char *kbuffer = copy_in_string (buffer);
   // If writing to console use putbuf (Jim)
   if (fd == 1) {
     putbuf(kbuffer, size);
+    return size;
   }
-
-  return 0;
+  else {
+    struct file_descriptor *file_d;
+    lock_acquire (&fs_lock);
+    file_d = get_fd(fd);
+    if (file_d != NULL) {
+      ret_val = file_write(file_d->file, kbuffer, (off_t)size);
+    }
+    lock_release (&fs_lock);
+  }
+  return ret_val;
 }
 

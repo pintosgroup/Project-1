@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include <threads/synch.h>
+#include "userprog/syscall.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -133,6 +134,15 @@ struct thread
     int exit_status;
   };
 
+//structure that describes file
+struct file_descriptor
+{
+   struct list_elem elem; //list elem
+   struct file *file; //file name
+   //struct dir  *dir;  //file directory
+   int handle;
+};
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -174,5 +184,6 @@ bool compare_threads_by_priority_elem ( const struct list_elem *, const struct l
 bool compare_threads_by_priority_donor_elem (const struct list_elem *, const struct list_elem *, void *);
 void donate_nested_priority (struct thread *);
 struct thread * get_thread (tid_t tid);
+struct file_descriptor *get_fd(int fd);
 
 #endif /* threads/thread.h */

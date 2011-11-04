@@ -135,7 +135,8 @@ struct thread
 
     // List of children of this process
     struct list children;
-    struct list_elem child_elem;
+    //struct list_elem child_elem;
+    struct wait_info *wait_status;
   };
 
 //structure that describes file
@@ -145,6 +146,15 @@ struct file_descriptor
    struct file *file; //file name
    //struct dir  *dir;  //file directory
    int handle;
+};
+
+struct wait_info
+{
+  tid_t tid;
+  int ref_cnt;
+  int exit_code;
+  struct list_elem elem;
+  struct thread *holder;
 };
 
 /* If false (default), use round-robin scheduler.
@@ -187,7 +197,7 @@ int thread_get_load_avg (void);
 bool compare_threads_by_priority_elem ( const struct list_elem *, const struct list_elem *, void * );
 bool compare_threads_by_priority_donor_elem (const struct list_elem *, const struct list_elem *, void *);
 void donate_nested_priority (struct thread *);
-struct thread * get_thread (tid_t tid);
+struct wait_info * get_wait_info (tid_t tid);
 struct file_descriptor *get_fd(int fd);
 
 #endif /* threads/thread.h */

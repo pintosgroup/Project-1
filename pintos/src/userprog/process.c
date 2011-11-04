@@ -57,13 +57,15 @@ process_execute (const char *file_name)
   else {
     // Wait for load to be done before continuing (Jim)
     sema_down (&exec.load_done);
+    if (exec.success) {
+      list_push_back (&thread_current()->children, &exec.wait_status->elem);
+    }
+    else {
+      tid = TID_ERROR;
+    }
   }
-  if (exec.success) {
-    return tid;
-  }
-  else {
-    return -1;
-  }
+
+  return tid;
 }
 
 /* A thread function that loads a user process and starts it
@@ -92,59 +94,64 @@ start_process (void *exec_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   // File name is the first argument (Jim)
   success = load (args[0], &if_.eip, &if_.esp);
-  if (!success)
-    goto done;
+  if (success) {
+    // Set up the stack with the arguments (Jim)
+    char *sp = PHYS_BASE;
+    int count = i;
+    int tot_len = 0;
+    char *arg_addr[25];
 
-  // Set up the stack with the arguments (Jim)
-  char *sp = PHYS_BASE;
-  int count = i;
-  int tot_len = 0;
-  char *arg_addr[25];
+    //Push each argument onto the stack in reverse order (Jim)
+    while ( i > 0 ) {
+      sp -= strlen(args[i-1])+1;
+      memcpy(sp, args[i-1], strlen(args[i-1])+1);
+      tot_len += strlen(args[i-1])+1;
+      arg_addr[i-1] = sp;
+      i--;
+    }
 
-  //Push each argument onto the stack in reverse order (Jim)
-  while ( i > 0 ) {
-    sp -= strlen(args[i-1])+1;
-    memcpy(sp, args[i-1], strlen(args[i-1])+1);
-    tot_len += strlen(args[i-1])+1;
-    arg_addr[i-1] = sp;
-    i--;
-  }
+    // Word align (Jim)
+    int zero = 0;
+    sp -= (4-(tot_len%4));
+    memcpy(sp, &zero, (4-(tot_len%4)));
 
-  // Word align (Jim)
-  int zero = 0;
-  sp -= (4-(tot_len%4));
-  memcpy(sp, &zero, (4-(tot_len%4)));
-
-  // Copy a null pointer for the last argument (Jim)
-  sp -= 4;
-  memcpy(sp, &zero, 4);
-  i = count;
-
-  // Copy in the addresses of each argument (Jim)
-  while ( i > 0 ) {
+    // Copy a null pointer for the last argument (Jim)
     sp -= 4;
-    memcpy(sp, &arg_addr[i-1], 4);
-    i--;
+    memcpy(sp, &zero, 4);
+    i = count;
+
+    // Copy in the addresses of each argument (Jim)
+    while ( i > 0 ) {
+      sp -= 4;
+      memcpy(sp, &arg_addr[i-1], 4);
+      i--;
+    }
+
+    // Copy in the address of the address of the first argument (Jim)
+    memcpy(sp-4, &sp, 4);
+    sp -= 4;
+    // Copy in argc (Jim)
+    sp -= 4;
+    memcpy(sp, &count, 4);
+    // Copy in the return address (Jim)
+    sp -= 4;
+    memcpy(sp, &zero, 4);
+
+    // Finally set the frame's stack pointer to the correct position (Jim)
+    if_.esp = sp;
+
+    /* If load failed, quit. */
+    //palloc_free_page (exec->file_name);
+
+    exec->wait_status = thread_current()->wait_status = malloc (sizeof *exec->wait_status);
+    success = exec->wait_status != NULL;
+    thread_current()->wait_status->ref_cnt = 2;
+    thread_current()->wait_status->exit_code = -1;
+    thread_current()->wait_status->tid = thread_current()->tid;
+    thread_current()->wait_status->holder = thread_current();
   }
-
-  // Copy in the address of the address of the first argument (Jim)
-  memcpy(sp-4, &sp, 4);
-  sp -= 4;
-  // Copy in argc (Jim)
-  sp -= 4;
-  memcpy(sp, &count, 4);
-  // Copy in the return address (Jim)
-  sp -= 4;
-  memcpy(sp, &zero, 4);
-
-  // Finally set the frame's stack pointer to the correct position (Jim)
-  if_.esp = sp;
-
-  /* If load failed, quit. */
-  //palloc_free_page (exec->file_name);
 
   // Set success and let waiter know we're done with load (Jim)
-  done:
   exec->success = success;
   sema_up (&exec->load_done);
   if (!success) 
@@ -173,18 +180,22 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
   // Get a reference to the child thread (Jim)
-  struct thread *t = NULL;
-  t = get_thread(child_tid);
+  struct wait_info *w = NULL;
+  w = get_wait_info(child_tid);
+  int ret_val = -1;
 
   // If the thread is running then wait for it to finish (Jim)
-  if ( t != NULL) {
-    if (t->status == THREAD_RUNNING || t->status == THREAD_READY || t->status == THREAD_BLOCKED) {
+  if ( w != NULL) {
+    if (w->ref_cnt == 2) {
       //printf("Thread %d waiting on thread %d\n", thread_current()->tid, t->tid);
-      sema_down(&t->p_done);
+      sema_down(&w->holder->p_done);
     }
-    return t->exit_status;
+    if (w->ref_cnt == 1) {
+      ret_val = w->exit_code;
+      w->ref_cnt--;
+    }
   }
-  return -1;
+  return ret_val;
 }
 
 /* Free the current process's resources. */
@@ -396,6 +407,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
+  file_deny_write(file);
 
   /* Set up stack. */
   if (!setup_stack (esp))

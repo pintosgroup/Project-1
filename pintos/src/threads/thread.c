@@ -364,17 +364,17 @@ bool compare_threads_by_priority_donor_elem ( const struct list_elem *a_, const 
 }
 
 // This function get the thread with the given thread id if it exists (Jim)
-struct thread *
-get_thread(tid_t tid) {
+struct wait_info *
+get_wait_info(tid_t tid) {
   struct list_elem *e;
-  struct thread *t;
+  struct wait_info *w;
 
-  if (!list_empty(&all_list)) {
+  if (!list_empty(&thread_current()->children)) {
     // Loop through each thread and return when thread found (Jim)
-    for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next(e)) {
-      t = list_entry (e, struct thread, allelem);
-      if (t->tid == tid) {
-        return t;
+    for (e = list_begin (&thread_current()->children); e != list_end (&thread_current()->children); e = list_next(e)) {
+      w = list_entry (e, struct wait_info, elem);
+      if (w->tid == tid) {
+        return w;
       }
     }
     return NULL;

@@ -38,7 +38,7 @@ syscall_init (void)
 }
 
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler (struct intr_frame *f) 
 {
   void *args[3];
   // Get the system call number off the stack (Jim)
@@ -138,9 +138,27 @@ exit (int status)
 {
   // Signal parent to continue (Jim)
   thread_current()->exit_status = status;
+  thread_current()->wait_status->exit_code = status;
+  thread_current()->wait_status->ref_cnt--;
   sema_up(&thread_current()->p_done);
   // Print exit information and quit (Jim)
   printf("%s: exit(%d)\n", thread_current()->name, status);
+
+  //close all files associated with process before exit
+  lock_acquire(&fs_lock);
+  struct list_elem *e;
+  struct file_descriptor *file_d;
+  struct thread *cur = thread_current();
+
+  if (!list_empty(&cur->fd_list)) {
+    for (e = list_begin (&cur->fd_list); e != list_end (&cur->fd_list); e = list_remove(e))
+    {
+      file_d = list_entry (e, struct file_descriptor, elem);
+      file_close(file_d->file);      
+    }
+  }
+    
+  lock_release(&fs_lock);
   thread_exit();
 }
 
@@ -286,6 +304,9 @@ write (int fd, const void *buffer, unsigned size)
 {
   int ret_val = 0;
 
+  if (buffer >= PHYS_BASE) {
+    exit(-1);
+  }
   char *kbuffer = copy_in_string (buffer);
   // If writing to console use putbuf (Jim)
   if (fd == 1) {
@@ -343,5 +364,6 @@ close (int fd)
     list_remove(&file_d->elem);
   }
   lock_release (&fs_lock);
+  free(file_d);
 }
 

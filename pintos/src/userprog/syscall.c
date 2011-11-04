@@ -20,8 +20,12 @@ static int wait (pid_t pid);
 static bool create(const char *file, unsigned initial_size);
 static bool remove(const char *file);
 static int open (const char * ufile);
+static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned size);
 static int write (int fd, const void *, unsigned size);
+static void seek (int fd, unsigned position);
+static unsigned tell (int fd);
+static void close (int fd);
 
 //filesystem lock
 struct lock fs_lock;
@@ -46,30 +50,44 @@ syscall_handler (struct intr_frame *f UNUSED)
   args[2] = (void *)f->esp + 12;
 
   switch (sys_num) {
-    case SYS_HALT:  // 0
+    case SYS_HALT:     // 0
       halt();
       break;
-    case SYS_EXIT:  // 1
+    case SYS_EXIT:     // 1
       exit(*(int *)args[0]);
       break;
-    case SYS_EXEC:  // 2
-      //printf("Calling exec with arg: 0x%x\n", (int)*(char **)args[0]);
+    case SYS_EXEC:     // 2
       f->eax = exec(*(char **)args[0]);
       break;
-    case SYS_WAIT:  // 3
+    case SYS_WAIT:     // 3
       f->eax = wait(*(pid_t *)args[0]);
       break;
-    case SYS_CREATE: //4
+    case SYS_CREATE:   // 4
       f->eax = create(*(char **)args[0], *(unsigned *)args[1]);
       break;
-    case SYS_REMOVE: //5
+    case SYS_REMOVE:   // 5
       f->eax = remove(*(char **)args[0]);
       break;
-    case SYS_OPEN:  //6
+    case SYS_OPEN:     // 6
       f->eax = open(*(char **) args[0]);
       break;
-    case SYS_WRITE: // 9
+    case SYS_FILESIZE: // 7
+      f->eax = filesize(*(int *)args[0]);
+      break;
+    case SYS_READ:     // 8
+      f->eax = read(*(int *)args[0], *(void **)args[1], *(unsigned *)args[2]);
+      break;
+    case SYS_WRITE:    // 9
       f->eax = write(*(int *)args[0], *(void **)args[1], *(unsigned *)args[2]);
+      break;
+    case SYS_SEEK:     // 10
+      seek(*(int *)args[0], *(unsigned *)args[1]);
+      break;
+    case SYS_TELL:     // 11
+      tell(*(int *)args[0]);
+      break;
+    case SYS_CLOSE:    // 12
+      close(*(int *)args[0]);
       break;
     default:
       thread_exit();
@@ -167,7 +185,6 @@ create(const char *file, unsigned initial_size)
     }
     palloc_free_page (kfile);
   }else{
-    printf("exiting becaue file is NULL.");
     exit(-1);
   }
   return returnValue;
@@ -227,6 +244,44 @@ open(const char* ufile)
 }
 
 static int
+filesize (int fd)
+{
+  int ret_val = 0;
+  struct file_descriptor *file_d;
+  lock_acquire (&fs_lock);
+  file_d = get_fd(fd);
+  if (file_d != NULL) {
+    ret_val = file_length(file_d->file);
+  }
+  lock_release (&fs_lock);
+  return ret_val;
+}
+
+static int
+read (int fd, void *buffer, unsigned size)
+{
+  int ret_val = -1;
+  int i;
+
+  if (fd == 0) {
+    for (i = 0; i < size; i++) {
+      *(char *)(buffer+i) = (char) input_getc();
+    }
+    ret_val = i + 1;
+  }
+  else {
+    struct file_descriptor *file_d;
+    lock_acquire (&fs_lock);
+    file_d = get_fd(fd);
+    if (file_d != NULL) {
+      ret_val = file_read(file_d->file, buffer, (off_t)size);
+    }
+    lock_release (&fs_lock);
+  }
+  return ret_val;
+}
+
+static int
 write (int fd, const void *buffer, unsigned size)
 {
   int ret_val = 0;
@@ -247,5 +302,46 @@ write (int fd, const void *buffer, unsigned size)
     lock_release (&fs_lock);
   }
   return ret_val;
+}
+
+static void
+seek (int fd, unsigned position)
+{
+  struct file_descriptor *file_d;
+  lock_acquire (&fs_lock);
+  file_d = get_fd(fd);
+  if (file_d != NULL) {
+    file_seek(file_d->file, (off_t)position);
+  }
+  lock_release (&fs_lock);
+}
+
+static unsigned
+tell (int fd)
+{
+  unsigned ret_val = 0;
+  
+  struct file_descriptor *file_d;
+  lock_acquire (&fs_lock);
+  file_d = get_fd(fd);
+  if (file_d != NULL) {
+    ret_val = file_tell(file_d->file);
+  }
+  lock_release (&fs_lock);
+  
+  return ret_val;
+}
+
+static void
+close (int fd)
+{
+  struct file_descriptor *file_d;
+  lock_acquire (&fs_lock);
+  file_d = get_fd(fd);
+  if (file_d != NULL) {
+    file_close(file_d->file);
+    list_remove(&file_d->elem);
+  }
+  lock_release (&fs_lock);
 }
 

@@ -373,16 +373,13 @@ get_thread(tid_t tid) {
     // Loop through each thread and return when thread found (Jim)
     for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next(e)) {
       t = list_entry (e, struct thread, allelem);
-      //printf("Thread id in all list: %d\n", t->tid);
       if (t->tid == tid) {
-        //printf("Thread %d has been found!", t->tid);
         return t;
       }
     }
     return NULL;
   }
   else {
-    //printf("Returning NULL for get_thread()\n");
     return NULL;
   }
 }
@@ -595,6 +592,9 @@ init_thread (struct thread *t, const char *name, int priority)
 
   // Initialize exit status to -1
   t->exit_status = -1;
+
+  // Initialize the children list
+  list_init(&t->children);
 
   list_push_back (&all_list, &t->allelem);
 }

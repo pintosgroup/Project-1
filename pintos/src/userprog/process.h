@@ -9,6 +9,7 @@ struct exec_info
   char * file_name;
   struct semaphore load_done;
   bool success;
+  struct thread *thread_created;
 };
 
 tid_t process_execute (const char *file_name);

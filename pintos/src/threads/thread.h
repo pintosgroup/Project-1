@@ -124,14 +124,18 @@ struct thread
     // Added for sleep function (Jim)
     int64_t wakeup_time;
 
-    //keep track of next value for a new handle
+    // keep track of next value for a new handle
     int next_handle;
     
-    //list of file descriptors
+    // list of file descriptors
     struct list fd_list;
 
     // exit status of the thread
     int exit_status;
+
+    // List of children of this process
+    struct list children;
+    struct list_elem child_elem;
   };
 
 //structure that describes file

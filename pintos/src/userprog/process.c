@@ -98,7 +98,7 @@ start_process (void *exec_)
   // Set up the stack with the arguments (Jim)
   char *sp = PHYS_BASE;
   int count = i;
-  int tot_len;
+  int tot_len = 0;
   char *arg_addr[25];
 
   //Push each argument onto the stack in reverse order (Jim)

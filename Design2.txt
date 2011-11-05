@@ -21,6 +21,9 @@ Kevin Schwarz
 >> preparing your submission, other than the Pintos documentation, course
 >> text, lecture notes, and course staff.
 
+www.github.com
+www.gitref.org
+
 			   ARGUMENT PASSING
 			   ================
 
@@ -30,7 +33,43 @@ Kevin Schwarz
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-struct semaphore p_done;  //Semaphore used to syncronize wait and exit in syscalls.
+struct semaphore p_done;  // Semaphore used to synchronize wait and exit in syscalls.
+int next_handle;          // keep track of next value for a new handle
+    
+struct list fd_list;     // list of file descriptors, in thread.h
+int exit_status;         // exit status of the thread, in thread.h
+struct list children;    // List of children of this process, in thread.h  
+struct wait_info *wait_status; //    , in thread.h
+struct file *bin_file; // in thread.h
+
+//structure that describes file
+struct file_descriptor
+{
+   struct list_elem elem; // list elem
+   struct file *file;    // file name
+   //struct dir  *dir;  // file directory
+   int handle;
+};
+
+struct wait_info
+{
+  tid_t tid;
+  int ref_cnt;
+  int exit_code;
+  struct list_elem elem;
+  struct thread *holder;
+};
+
+// Struct for keeping track of process execution data
+struct exec_info
+{
+  char * file_name;
+  struct semaphore load_done;
+  bool success;
+  struct wait_info *wait_status;
+};
+    
+
 
 ---- ALGORITHMS ----
 

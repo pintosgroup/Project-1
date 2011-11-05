@@ -49,6 +49,11 @@ syscall_handler (struct intr_frame *f)
   args[1] = (void *)f->esp + 8;
   args[2] = (void *)f->esp + 12;
 
+  if(args[2] >= PHYS_BASE)
+  {
+    exit(-1);
+  }
+
   switch (sys_num) {
     case SYS_HALT:     // 0
       halt();
@@ -280,6 +285,10 @@ read (int fd, void *buffer, unsigned size)
 {
   int ret_val = -1;
   int i;
+  
+  if (buffer >= PHYS_BASE) {
+    exit(-1);
+  }
 
   if (fd == 0) {
     for (i = 0; i < size; i++) {
@@ -303,7 +312,7 @@ static int
 write (int fd, const void *buffer, unsigned size)
 {
   int ret_val = 0;
-
+  
   if (buffer >= PHYS_BASE) {
     exit(-1);
   }
@@ -318,7 +327,7 @@ write (int fd, const void *buffer, unsigned size)
     lock_acquire (&fs_lock);
     file_d = get_fd(fd);
     if (file_d != NULL) {
-      ret_val = file_write(file_d->file, kbuffer, (off_t)size);
+      ret_val = file_write(file_d->file, buffer, (off_t)size);
     }
     lock_release (&fs_lock);
   }

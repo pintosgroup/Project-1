@@ -10,6 +10,9 @@
 #include "filesys/filesys.h"
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
+#include "devices/shutdown.h"
+#include "userprog/process.h"
+#include "devices/input.h"
 
 static void syscall_handler (struct intr_frame *);
 static char * copy_in_string (const char *);
@@ -49,7 +52,7 @@ syscall_handler (struct intr_frame *f)
   args[1] = (void *)f->esp + 8;
   args[2] = (void *)f->esp + 12;
 
-  if(args[2] >= PHYS_BASE)
+  if(is_kernel_vaddr(args[2]))
   {
     exit(-1);
   }
@@ -110,7 +113,7 @@ copy_in_string (const char *us)
       thread_exit ();
   for (length = 0; length < PGSIZE; length++)
   {
-      if (us >= (char *) PHYS_BASE || !get_user (ks + length, us++))
+      if (is_kernel_vaddr(us) || !get_user ((uint8_t *)(ks + length), (uint8_t *)(us++)))
       {
           palloc_free_page (ks);
           thread_exit ();
@@ -172,9 +175,7 @@ exec (const char *cmd_line)
 {
   pid_t ret_val;
 
-  //printf("Entering exec!\n");
-  if ((unsigned)cmd_line > PHYS_BASE) {
-    //printf("Bad pointer!\n");
+  if (is_kernel_vaddr(cmd_line)) {
     return -1;
   }
   char *kcmd_line = copy_in_string (cmd_line);
@@ -247,11 +248,9 @@ open(const char* ufile)
   {
       lock_acquire (&fs_lock);
       fd->file = filesys_open (kfile);
-      //printf("File:  %s",fd->file);
       if (fd->file != NULL)
       {
           struct thread *cur = thread_current ();
-          //printf("Handle: %d\n", cur->next_handle);
           handle = fd->handle = cur->next_handle++;
           list_push_front (&cur->fd_list, &fd->elem);
       }
@@ -284,9 +283,9 @@ static int
 read (int fd, void *buffer, unsigned size)
 {
   int ret_val = -1;
-  int i;
+  unsigned i;
   
-  if (buffer >= PHYS_BASE) {
+  if (is_kernel_vaddr(buffer)) {
     exit(-1);
   }
 
@@ -313,7 +312,7 @@ write (int fd, const void *buffer, unsigned size)
 {
   int ret_val = 0;
   
-  if (buffer >= PHYS_BASE) {
+  if (is_kernel_vaddr(buffer)) {
     exit(-1);
   }
   char *kbuffer = copy_in_string (buffer);
@@ -326,11 +325,6 @@ write (int fd, const void *buffer, unsigned size)
     struct file_descriptor *file_d;
     lock_acquire (&fs_lock);
     file_d = get_fd(fd);
-    if(file_d == thread_current()->bin_file)
-    {
-       lock_release(&fs_lock);
-       exit(-1);
-    }
     if (file_d != NULL) {
       ret_val = file_write(file_d->file, buffer, (off_t)size);
     }

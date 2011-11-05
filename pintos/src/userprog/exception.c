@@ -150,9 +150,10 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  // If page not present or user accessing kernel space then exit (Jim)
-  if (not_present || ((fault_addr >= PHYS_BASE) && user))
-    exit(-1);
+  // If page not present or user accessing kernel space then exit (Project 2)
+  if (not_present || (is_kernel_vaddr(fault_addr) && user)) {
+    sys_exit(-1);
+  }
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to

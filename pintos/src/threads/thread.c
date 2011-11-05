@@ -183,7 +183,6 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
-  //printf("Creating thread %s: %d\n", name, tid);
 
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 
@@ -313,7 +312,6 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
-  //printf("Removing thread %d from the all list\n", thread_current()->tid);
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
   schedule ();
@@ -363,27 +361,27 @@ bool compare_threads_by_priority_donor_elem ( const struct list_elem *a_, const 
   return a->priority < b->priority;
 }
 
-// This function get the thread with the given thread id if it exists (Jim)
+// This function gets the wait info with the given thread id if it exists (Project 2)
 struct wait_info *
 get_wait_info(tid_t tid) {
   struct list_elem *e;
   struct wait_info *w;
+  struct thread *cur = thread_current();
 
-  if (!list_empty(&thread_current()->children)) {
-    // Loop through each thread and return when thread found (Jim)
-    for (e = list_begin (&thread_current()->children); e != list_end (&thread_current()->children); e = list_next(e)) {
+  if (!list_empty(&cur->children)) {
+    // Loop through each wait info item and return when correct wait info found
+    for (e = list_begin (&cur->children); e != list_end (&cur->children); e = list_next(e)) {
       w = list_entry (e, struct wait_info, elem);
       if (w->tid == tid) {
         return w;
       }
     }
-    return NULL;
   }
-  else {
-    return NULL;
-  }
+  // Return NULL if not found
+  return NULL;
 }
 
+// This functions finds the file descriptor structure given the handle (Project 2)
 struct file_descriptor *
 get_fd(int fd) {
   struct list_elem *e;
@@ -391,17 +389,16 @@ get_fd(int fd) {
   struct thread *cur = thread_current();
 
   if (!list_empty(&cur->fd_list)) {
+    // Loop through each file descriptor and return when correct file is found
     for (e = list_begin (&cur->fd_list); e != list_end (&cur->fd_list); e = list_next(e)) {
       file_d = list_entry (e, struct file_descriptor, elem);
       if (file_d->handle == fd) {
         return file_d;
       }
     }
-    return NULL;
   }
-  else {
-    return NULL;
-  }
+  // Return NULL if not found
+  return NULL;
 }
 
 // This function updates the thread's priority and recursively update's the thread's donee chain's priority (Jim)
@@ -581,19 +578,19 @@ init_thread (struct thread *t, const char *name, int priority)
   // Set original priority (Jim)
   t->old_priority = priority;
 
-  // Initialize p_done semaphore (Jim)
+  // Initialize p_done semaphore (Project 2)
   sema_init(&t->p_done,0);
 
-  //initialize file descriptor list 
+  // Initialize file descriptor list (Project 2)
   list_init(&t->fd_list);
   
-  //init next handle to be assigned to a file
+  // Init next handle to be assigned to a file (Project 2)
   t->next_handle = 2;
 
-  // Initialize exit status to -1
+  // Initialize exit status to -1 (Project 2)
   t->exit_status = -1;
 
-  // Initialize the children list
+  // Initialize the children list (Project 2)
   list_init(&t->children);
 
   list_push_back (&all_list, &t->allelem);

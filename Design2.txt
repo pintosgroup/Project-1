@@ -33,22 +33,23 @@ www.gitref.org
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+thread.h additions
+--------------------------
 struct semaphore p_done;  // Semaphore used to synchronize wait and exit in syscalls.
 int next_handle;          // keep track of next value for a new handle
     
-struct list fd_list;     // list of file descriptors, in thread.h
-int exit_status;         // exit status of the thread, in thread.h
-struct list children;    // List of children of this process, in thread.h  
-struct wait_info *wait_status; //    , in thread.h
-struct file *bin_file; // in thread.h
+struct list fd_list;     // List of file descriptors
+int exit_status;         // Exit status of the thread
+struct list children;    // List of children of this process hold references to wait_info of each child process
+struct wait_info *wait_status; // wait status of this thread and is held in list by parent   
+struct file *bin_file;  // pointer to keep track of binary file executable, enable us to close file when process exits
 
 //structure that describes file
 struct file_descriptor
 {
    struct list_elem elem; // list elem
-   struct file *file;    // file name
-   //struct dir  *dir;  // file directory
-   int handle;
+   struct file *file;    // already existing file structure in pintos
+   int handle;     //handle of file, unique to this thread only
 };
 
 struct wait_info
@@ -60,6 +61,8 @@ struct wait_info
   struct thread *holder;
 };
 
+process.h additions
+---------------------------
 // Struct for keeping track of process execution data
 struct exec_info
 {
@@ -68,6 +71,10 @@ struct exec_info
   bool success;
   struct wait_info *wait_status;
 };
+
+syscall.c additions
+//filesystem lock
+struct lock fs_lock;
     
 
 

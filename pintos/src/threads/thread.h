@@ -124,39 +124,40 @@ struct thread
     // Added for sleep function (Jim)
     int64_t wakeup_time;
 
-    // keep track of next value for a new handle
+    // Keep track of next value for a new handle (Project 2)
     int next_handle;
     
-    // list of file descriptors
+    // List of file descriptors (Project 2)
     struct list fd_list;
 
-    // exit status of the thread
+    // Exit status of the thread  (Project 2)
     int exit_status;
 
-    // List of children of this process
+    // List of children of this process (Project 2)
     struct list children;
-    //struct list_elem child_elem;
+    // Wait information about this thread (Project 2)
     struct wait_info *wait_status;
     
+    // The binary file for this thread so it cannot be edited (Project 2)
     struct file *bin_file;
   };
 
-//structure that describes file
+// Structure that describes file (Project 2)
 struct file_descriptor
 {
    struct list_elem elem; //list elem
    struct file *file; //file name
-   //struct dir  *dir;  //file directory
    int handle;
 };
 
+// Structure that has wait info for parent to look at after death of child (Project 2)
 struct wait_info
 {
-  tid_t tid;
-  int ref_cnt;
-  int exit_code;
-  struct list_elem elem;
-  struct thread *holder;
+  tid_t tid; // tid of thread that owns this info
+  int ref_cnt; // keeps track of how many threads still need this info
+  int exit_code; // exit code of the thread that owns this
+  struct list_elem elem; // element to keep track in children list of parent thread
+  struct thread *holder; // thread that owns this info for easy access (not strictly necessary)
 };
 
 /* If false (default), use round-robin scheduler.
@@ -199,6 +200,8 @@ int thread_get_load_avg (void);
 bool compare_threads_by_priority_elem ( const struct list_elem *, const struct list_elem *, void * );
 bool compare_threads_by_priority_donor_elem (const struct list_elem *, const struct list_elem *, void *);
 void donate_nested_priority (struct thread *);
+
+// Added functions (Project 2)
 struct wait_info * get_wait_info (tid_t tid);
 struct file_descriptor *get_fd(int fd);
 

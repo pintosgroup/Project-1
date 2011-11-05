@@ -32,10 +32,11 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  // Declare some variable (Project 2)
   char *save;
   struct exec_info exec;
 
-  // Set file name and initialize wait semaphore (Jim)
+  // Set file name and initialize wait semaphore (Project 2)
   exec.file_name = file_name;
   sema_init (&exec.load_done, 0);
 
@@ -46,17 +47,17 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  // Get the filename from the copy (Jim)
+  // Get the filename from the copy (Project 2)
   strtok_r (fn_copy, " ", &save);
 
   /* Create a new thread to execute FILE_NAME. */
-  // Use the first argument as the file name and pass in a copy of all the arguments (Jim)
+  // Use the first argument as the file name and pass in a copy of all the arguments (Project 2)
   tid = thread_create (fn_copy, PRI_DEFAULT, start_process, &exec);
   if (tid == TID_ERROR) {
     palloc_free_page (fn_copy);
   }
   else {
-    // Wait for load to be done before continuing (Jim)
+    // Wait for load to be done before continuing (Project 2)
     sema_down (&exec.load_done);
     if (exec.success) {
       list_push_back (&thread_current()->children, &exec.wait_status->elem);
@@ -74,16 +75,16 @@ process_execute (const char *file_name)
 static void
 start_process (void *exec_)
 {
-  struct exec_info *exec = exec_;
+  struct exec_info *exec = exec_;  // Execute info (Project 2)
   struct intr_frame if_;
   bool success;
 
-  // Initialize local variables (Jim)
+  // Initialize local variables (Project 2)
   char *token, *save_ptr;
   char *args[25];	// Max length of 25 arguments
   int i = 0;
 
-  // Tokenize the arguments (Jim)
+  // Tokenize the arguments (Project 2)
   for (token = strtok_r (exec->file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
     args[i++] = token;
   }
@@ -93,56 +94,53 @@ start_process (void *exec_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  // File name is the first argument (Jim)
+  // File name is the first argument (Project 2)
   success = load (args[0], &if_.eip, &if_.esp);
   if (success) {
-    // Set up the stack with the arguments (Jim)
+    // Set up the stack with the arguments (Project 2)
     char *sp = PHYS_BASE;
     int count = i;
     int tot_len = 0;
     char *arg_addr[25];
 
-    //Push each argument onto the stack in reverse order (Jim)
+    // Push each argument onto the stack in reverse order (Project 2)
     while ( i > 0 ) {
-      sp -= strlen(args[i-1])+1;
-      memcpy(sp, args[i-1], strlen(args[i-1])+1);
-      tot_len += strlen(args[i-1])+1;
-      arg_addr[i-1] = sp;
+      sp -= strlen(args[i-1])+1; // Decrement the stack pointer to the end of the argument
+      memcpy(sp, args[i-1], strlen(args[i-1])+1); // Copy the argument on the stack
+      tot_len += strlen(args[i-1])+1; // Keep track of the total length of the arguments
+      arg_addr[i-1] = sp; // Keep track of the address of the argument
       i--;
     }
 
-    // Word align (Jim)
+    // Word align (Project 2)
     int zero = 0;
-    sp -= (4-(tot_len%4));
+    sp -= (4-(tot_len%4)); // If already word aligned, will insert extra zero word
     memcpy(sp, &zero, (4-(tot_len%4)));
 
-    // Copy a null pointer for the last argument (Jim)
+    // Copy a null pointer for the last argument (Project 2)
     sp -= 4;
     memcpy(sp, &zero, 4);
     i = count;
 
-    // Copy in the addresses of each argument (Jim)
+    // Copy in the addresses of each argument (Project 2)
     while ( i > 0 ) {
       sp -= 4;
       memcpy(sp, &arg_addr[i-1], 4);
       i--;
     }
 
-    // Copy in the address of the address of the first argument (Jim)
+    // Copy in the address of the address of the first argument's address (Project 2)
     memcpy(sp-4, &sp, 4);
     sp -= 4;
-    // Copy in argc (Jim)
+    // Copy in argc (Project 2))
     sp -= 4;
     memcpy(sp, &count, 4);
-    // Copy in the return address (Jim)
+    // Copy in the fake return address (Project 2)
     sp -= 4;
     memcpy(sp, &zero, 4);
 
-    // Finally set the frame's stack pointer to the correct position (Jim)
+    // Finally set the frame's stack pointer to the correct position (Project 2)
     if_.esp = sp;
-
-    /* If load failed, quit. */
-    //palloc_free_page (exec->file_name);
 
     exec->wait_status = thread_current()->wait_status = malloc (sizeof *exec->wait_status);
     success = exec->wait_status != NULL;
@@ -151,8 +149,12 @@ start_process (void *exec_)
     thread_current()->wait_status->tid = thread_current()->tid;
     thread_current()->wait_status->holder = thread_current();
   }
+  else {
+    /* If load failed, quit. */
+    //palloc_free_page (exec->file_name);
+  }
 
-  // Set success and let waiter know we're done with load (Jim)
+  // Set success and let waiter know we're done with load (Project 2)
   exec->success = success;
   sema_up (&exec->load_done);
   if (!success) 
@@ -180,17 +182,17 @@ start_process (void *exec_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  // Get a reference to the child thread (Jim)
+  // Get a reference to the child thread's wait info (Project 2)
   struct wait_info *w = NULL;
   w = get_wait_info(child_tid);
   int ret_val = -1;
 
-  // If the thread is running then wait for it to finish (Jim)
   if ( w != NULL) {
+    // If the thread is running then wait for it to finish (Project 2)
     if (w->ref_cnt == 2) {
-      //printf("Thread %d waiting on thread %d\n", thread_current()->tid, t->tid);
       sema_down(&w->holder->p_done);
     }
+    // If the thread is done running get the return code (Project 2)
     if (w->ref_cnt == 1) {
       ret_val = w->exit_code;
       w->ref_cnt--;
@@ -206,6 +208,7 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+  // Close the executable with exiting (Project 2)
   file_close(cur->bin_file);
 
   /* Destroy the current process's page directory and switch back
@@ -332,6 +335,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
+  // Set the thread's binary file when opening (Project 2)
   t->bin_file = file = filesys_open (file_name);
   if (file == NULL) 
     {
@@ -423,7 +427,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  //file_close (file);
   return success;
 }
 
@@ -548,9 +551,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success) {
-        // Temporary change to avoid page faulting (Jim)
         *esp = PHYS_BASE;
-        //*esp = PHYS_BASE - 12;
       }
       else
         palloc_free_page (kpage);

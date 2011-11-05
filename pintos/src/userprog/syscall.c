@@ -34,7 +34,7 @@ static void sys_close (int fd);
 struct lock fs_lock;
 
 void
-syscall_init (void) 
+syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
   // Initialize the lock (Project 2)
@@ -42,7 +42,7 @@ syscall_init (void)
 }
 
 static void
-syscall_handler (struct intr_frame *f) 
+syscall_handler (struct intr_frame *f)
 {
   void *args[3];
   // Get the system call number off the stack (Project 2)
@@ -60,43 +60,43 @@ syscall_handler (struct intr_frame *f)
 
   // Make the correct system call (Project 2)
   switch (sys_num) {
-    case SYS_HALT:     // 0
+    case SYS_HALT: // 0
       sys_halt();
       break;
-    case SYS_EXIT:     // 1
+    case SYS_EXIT: // 1
       sys_exit(*(int *)args[0]);
       break;
-    case SYS_EXEC:     // 2
+    case SYS_EXEC: // 2
       f->eax = sys_exec(*(char **)args[0]);
       break;
-    case SYS_WAIT:     // 3
+    case SYS_WAIT: // 3
       f->eax = sys_wait(*(pid_t *)args[0]);
       break;
-    case SYS_CREATE:   // 4
+    case SYS_CREATE: // 4
       f->eax = sys_create(*(char **)args[0], *(unsigned *)args[1]);
       break;
-    case SYS_REMOVE:   // 5
+    case SYS_REMOVE: // 5
       f->eax = sys_remove(*(char **)args[0]);
       break;
-    case SYS_OPEN:     // 6
+    case SYS_OPEN: // 6
       f->eax = sys_open(*(char **) args[0]);
       break;
     case SYS_FILESIZE: // 7
       f->eax = sys_filesize(*(int *)args[0]);
       break;
-    case SYS_READ:     // 8
+    case SYS_READ: // 8
       f->eax = sys_read(*(int *)args[0], *(void **)args[1], *(unsigned *)args[2]);
       break;
-    case SYS_WRITE:    // 9
+    case SYS_WRITE: // 9
       f->eax = sys_write(*(int *)args[0], *(void **)args[1], *(unsigned *)args[2]);
       break;
-    case SYS_SEEK:     // 10
+    case SYS_SEEK: // 10
       sys_seek(*(int *)args[0], *(unsigned *)args[1]);
       break;
-    case SYS_TELL:     // 11
-      sys_tell(*(int *)args[0]);
+    case SYS_TELL: // 11
+      f->eax = sys_tell(*(int *)args[0]);
       break;
-    case SYS_CLOSE:    // 12
+    case SYS_CLOSE: // 12
       sys_close(*(int *)args[0]);
       break;
     default:
@@ -159,6 +159,9 @@ sys_exit (int status)
   // Signal parent that the child has finished
   sema_up(&cur->p_done);
 
+  // Print exit information
+  printf("%s: exit(%d)\n", cur->name, status);
+
   // sys_close all files associated with thread before exit
   lock_acquire(&fs_lock);
   struct list_elem *e;
@@ -171,10 +174,8 @@ sys_exit (int status)
       file_close(file_d->file);
     }
   }
-
-  // Print exit information and quit
-  printf("%s: exit(%d)\n", cur->name, status);
   lock_release(&fs_lock);
+
   thread_exit();
 }
 
@@ -193,7 +194,7 @@ sys_exec (const char *cmd_line)
   char *kcmd_line = copy_in_string (cmd_line);
   // Execute process
   lock_acquire (&fs_lock);
-  ret_val =  process_execute(kcmd_line);
+  ret_val = process_execute(kcmd_line);
   lock_release (&fs_lock);
   return ret_val;
 }
@@ -214,10 +215,10 @@ sys_create(const char *file, unsigned initial_size)
     char *kfile = copy_in_string (file);\
   
     if (kfile == NULL){
-      sys_exit(-1);   
+      sys_exit(-1);
     }
     else{
-      // Lock the file system before calling sys_create.
+      // Lock the file system before calling create.
       lock_acquire(&fs_lock);
       returnValue = filesys_create(kfile, initial_size);
       lock_release(&fs_lock);
@@ -237,10 +238,10 @@ sys_remove(const char *file)
   if (file != NULL){
     char *kfile = copy_in_string (file);
     if (kfile == NULL){
-      sys_exit(-1);   
+      sys_exit(-1);
     }
     else{
-      // Lock the file system before calling sys_create. (Kevin)
+      // Lock the file system before calling create. (Kevin)
       lock_acquire(&fs_lock);
       returnValue = filesys_remove(kfile);
       lock_release(&fs_lock);
@@ -340,6 +341,8 @@ sys_write (int fd, const void *buffer, unsigned size)
   if (is_kernel_vaddr(buffer)) {
     sys_exit(-1);
   }
+
+  char *kbuffer = copy_in_string (buffer);
 
   // If writing to console use putbuf
   if (fd == 1) {

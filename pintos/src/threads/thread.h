@@ -137,6 +137,8 @@ struct thread
     struct list children;
     //struct list_elem child_elem;
     struct wait_info *wait_status;
+    
+    struct file *bin_file;
   };
 
 //structure that describes file

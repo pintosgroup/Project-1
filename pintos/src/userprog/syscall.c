@@ -326,9 +326,15 @@ write (int fd, const void *buffer, unsigned size)
     struct file_descriptor *file_d;
     lock_acquire (&fs_lock);
     file_d = get_fd(fd);
+    if(file_d == thread_current()->bin_file)
+    {
+       lock_release(&fs_lock);
+       exit(-1);
+    }
     if (file_d != NULL) {
       ret_val = file_write(file_d->file, buffer, (off_t)size);
     }
+
     lock_release (&fs_lock);
   }
   return ret_val;
